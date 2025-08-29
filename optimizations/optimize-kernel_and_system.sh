@@ -1,4 +1,61 @@
 #!/bin/bash
+#
+# Proxmox Kernel & System Optimization Script
+# 
+# Purpose: Applies comprehensive system-level optimizations including kernel
+#          parameters, sysctl settings, and ZFS tuning. Configures AMD-specific
+#          kernel options and system parameters for optimal Proxmox performance.
+#
+# Prerequisites: 
+#   - Proxmox VE 8.x or 9.x
+#   - AMD processor (optimized for Ryzen 5000 series)
+#   - Root privileges
+#   - Backup of current configuration recommended
+#
+# Usage: 
+#   ./optimize-kernel_and_system.sh
+#
+# Parameters:
+#   None - script applies all optimizations automatically
+#
+# Examples:
+#   ./optimize-kernel_and_system.sh
+#
+# What this script does:
+#   - Updates /etc/kernel/cmdline with AMD optimizations
+#   - Disables IPv6 and sets kernel panic behavior
+#   - Optimizes swappiness (10) and writeback settings
+#   - Configures ZFS ARC limits (50% max, 12.5% min of RAM)
+#   - Applies sysctl settings immediately
+#   - Refreshes boot configuration with proxmox-boot-tool
+#
+# ⚠️  WARNING: This script modifies critical system settings!
+#     - Disables CPU mitigations (security vs performance trade-off)
+#     - Requires system reboot for kernel parameters to take effect
+#     - Only use in trusted, isolated environments
+#
+# Expected results:
+#   - 10-15% performance improvement
+#   - Better memory management
+#   - Optimized I/O performance
+#   - Reduced boot time
+#
+# Troubleshooting:
+#   - Boot issues: Use Proxmox rescue mode to revert /etc/kernel/cmdline
+#   - ZFS issues: Check available RAM and adjust ARC settings
+#   - Performance regression: Revert sysctl files and reboot
+#
+# Author: somnium78
+# Repository: https://github.com/somnium78/proxmox-stuff
+# License: GNU General Public License v3.0
+#          See https://www.gnu.org/licenses/gpl-3.0.html
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+
 echo "=== Proxmox Kernel & System Optimization ==="
 
 # 1. Kernel Command Line optimieren

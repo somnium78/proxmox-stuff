@@ -1,4 +1,54 @@
 #!/bin/bash
+#
+# Proxmox AMD 5825U CPU Optimization Script
+# 
+# Purpose: Optimizes AMD Ryzen 7 5825U (8-core) processors for Proxmox VE
+#          with balanced performance configuration. Sets moderate frequency
+#          limits (95%) for optimal performance/thermal balance.
+#
+# Prerequisites: 
+#   - Proxmox VE 8.x or 9.x
+#   - AMD Ryzen 7 5825U processor
+#   - Root privileges
+#   - AMD P-State driver active (amd_pstate=active)
+#
+# Usage: 
+#   ./optimize-AMD5825U.sh
+#
+# Parameters:
+#   None - script runs with predefined optimal settings
+#
+# Examples:
+#   ./optimize-AMD5825U.sh
+#
+# What this script does:
+#   - Sets powersave governor with balance_power EPP
+#   - Limits max frequency to 95% (4.32 GHz) for thermal management
+#   - Configures ZFS ARC settings optimized for available RAM
+#   - Sets up NVMe optimizations (mq-deadline scheduler)
+#   - Creates systemd service for persistent settings
+#
+# Expected results:
+#   - Target temperature: ~50°C under load
+#   - Better performance than 5425U due to 8-core design
+#   - Excellent performance/efficiency balance
+#
+# Troubleshooting:
+#   - If EPP settings fail: Verify amd_pstate=active in kernel cmdline
+#   - Performance issues: Check if thermal throttling occurs
+#   - Governor not applied: Ensure no conflicting power management tools
+#
+# Author: somnium78
+# Repository: https://github.com/somnium78/proxmox-stuff
+# License: GNU General Public License v3.0
+#          See https://www.gnu.org/licenses/gpl-3.0.html
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+
 echo "=== AMD 5825U Optimized Configuration for pve99 ==="
 
 # 1. AMD Microcode sicherstellen
