@@ -1,0 +1,49 @@
+#!/bin/bash
+#
+# Check_MK Local Check: LINSTOR Resource Groups
+# File: /usr/lib/check_mk_agent/local/linstor_resource_groups
+#
+# Monitors LINSTOR resource group configuration
+# Uses JSON API for reliable data parsing
+#
+# Author: somnium78
+# Version: 1.0.0
+# Date: 2025-08-30
+#
+
+check_linstor_resource_groups() {
+    if ! command -v linstor >/dev/null 2>&1; then
+        echo "2 LINSTOR_ResourceGroups - CRITICAL: linstor command not found"
+        return
+    fi
+
+    rg_json=$(linstor -m resource-group list 2>/dev/null)
+
+    if [ $? -ne 0 ]; then
+        echo "2 LINSTOR_ResourceGroups - CRITICAL: Failed to query resource groups"
+        return
+    fi
+
+        total_rgs=$(echo "$rg_json" | grep -c '"name"')
+
+    if [ $total_rgs -eq 0 ]; then
+        echo "1 LINSTOR_ResourceGroups - WARNING: No resource group data found"
+        return
+    fi
+
+        properly_configured=$(echo "$rg_json" | grep -c '"place_count"')
+
+        config_issues=$((total_rgs - properly_configured))
+
+    if [ $config_issues -gt 0 ]; then
+        status=1
+        state="WARNING"
+    else
+        status=0
+        state="OK"
+    fi
+
+    echo "$status LINSTOR_ResourceGroups total=$total_rgs;config_issues=$config_issues $state: $total_rgs resource groups ($config_issues with potential configuration issues)"
+}
+
+check_linstor_resource_groups

@@ -1,0 +1,53 @@
+#!/bin/bash
+#
+# Check_MK Local Check: LINSTOR Storage Pools
+# File: /usr/lib/check_mk_agent/local/linstor_storage_pools
+#
+# Monitors LINSTOR storage pool health
+# Uses JSON API for reliable data parsing
+#
+# Author: somnium78
+# Version: 1.0.0
+# Date: 2025-08-30
+#
+
+check_linstor_storage_pools() {
+    if ! command -v linstor >/dev/null 2>&1; then
+        echo "2 LINSTOR_StoragePools - CRITICAL: linstor command not found"
+        return
+    fi
+
+    sp_json=$(linstor -m storage-pool list 2>/dev/null)
+
+    if [ $? -ne 0 ]; then
+        echo "2 LINSTOR_StoragePools - CRITICAL: Failed to query storage pools"
+        return
+    fi
+
+    total_pools=$(echo "$sp_json" | grep -c '"storage_pool_name"')
+
+    if [ $total_pools -eq 0 ]; then
+        echo "1 LINSTOR_StoragePools - WARNING: No storage pool data found"
+        return
+    fi
+
+    error_pools=$(echo "$sp_json" | grep -c '"reports".*"error"')
+    warning_pools=$(echo "$sp_json" | grep -c '"reports".*"warning"')
+
+    healthy_pools=$((total_pools - error_pools - warning_pools))
+
+    if [ $error_pools -gt 0 ]; then
+        status=2
+        state="CRITICAL"
+    elif [ $warning_pools -gt 0 ]; then
+        status=1
+        state="WARNING"
+    else
+        status=0
+        state="OK"
+    fi
+
+    echo "$status LINSTOR_StoragePools total=$total_pools;healthy=$healthy_pools;warnings=$warning_pools;errors=$error_pools $state: $total_pools storage pools ($healthy_pools healthy, $warning_pools warnings, $error_pools errors)"
+}
+
+check_linstor_storage_pools

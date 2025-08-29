@@ -1,0 +1,56 @@
+#!/bin/bash
+#
+# Check_MK Local Check: LINSTOR Resources
+# File: /usr/lib/check_mk_agent/local/linstor_resources
+#
+# Monitors DRBD resource health in LINSTOR clusters
+# Uses JSON API for reliable data parsing
+#
+# Author: somnium78
+# Version: 1.0.0
+# Date: 2025-08-30
+#
+
+check_linstor_resources() {
+    if ! command -v linstor >/dev/null 2>&1; then
+        echo "2 LINSTOR_Resources - CRITICAL: linstor command not found"
+        return
+    fi
+
+    resources_json=$(linstor -m resource list 2>/dev/null)
+
+    if [ $? -ne 0 ]; then
+        echo "2 LINSTOR_Resources - CRITICAL: Failed to query LINSTOR controller"
+        return
+    fi
+
+    total_resources=$(echo "$resources_json" | grep -c '"node_name"')
+
+    if [ $total_resources -eq 0 ]; then
+        echo "2 LINSTOR_Resources - CRITICAL: No resource data found"
+        return
+    fi
+
+    uptodate_count=$(echo "$resources_json" | grep -c '"disk_state": "UpToDate"')
+    degraded_count=$(echo "$resources_json" | grep -c '"disk_state": "Degraded"')
+    inconsistent_count=$(echo "$resources_json" | grep -c '"disk_state": "Inconsistent"')
+    failed_count=$(echo "$resources_json" | grep -c '"disk_state": "Failed"')
+    diskless_count=$(echo "$resources_json" | grep -c '"disk_state": "Diskless"')
+
+    problematic_count=$((failed_count + inconsistent_count))
+
+    if [ $problematic_count -gt 0 ]; then
+        status=2
+        state="CRITICAL"
+    elif [ $degraded_count -gt 0 ]; then
+        status=1
+        state="WARNING"
+    else
+        status=0
+        state="OK"
+    fi
+
+    echo "$status LINSTOR_Resources total=$total_resources;uptodate=$uptodate_count;degraded=$degraded_count;failed=$failed_count;diskless=$diskless_count $state: $total_resources resources ($uptodate_count UpToDate, $degraded_count degraded, $failed_count failed, $diskless_count diskless)"
+}
+
+check_linstor_resources
