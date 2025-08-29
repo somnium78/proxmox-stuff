@@ -1,216 +1,291 @@
-🚀 Proxmox AMD Optimization Guide
-📋 Übersicht
+# 🚀 Proxmox Management Scripts Sammlung
 
-Diese Optimierungen sind speziell für AMD-basierte Proxmox-Systeme entwickelt und verbessern Performance, Energieeffizienz und Stabilität. Die Konfigurationen weichen bewusst von Standard-Einstellungen ab, um maximale Leistung in kontrollierten Umgebungen zu erreichen.
-⚡ Kernel Parameter Optimierungen
-🔧 AMD-spezifische Parameter
+## 📋 Übersicht
 
-    amd_pstate=active: Aktiviert AMD P-State Driver für bessere Frequenzskalierung
-        Warum: Standard ACPI-CPPC ist weniger effizient als nativer AMD-Driver
-        Vorteil: Bis zu 15% bessere Energieeffizienz und responsivere Frequenzanpassung
+Diese Repository enthält eine umfassende Sammlung von Skripten, Konfigurationen und Dokumentationen für die Verwaltung und Optimierung von Proxmox Virtual Environment (PVE) Clustern. Jedes Verzeichnis konzentriert sich auf spezifische Aspekte der Proxmox-Administration, von Performance-Optimierung bis hin zu Automatisierung und Monitoring.
 
-    kvm_amd.npt=1: Aktiviert Nested Page Tables für bessere VM-Performance
-        Warum: Reduziert Memory-Management-Overhead in VMs drastisch
-        Vorteil: 10-20% bessere VM-Performance bei Memory-intensiven Workloads
+**Hinweis**: Diese Optimierungen werden primär für meinen Homelab-Cluster auf Basis von Mini-PCs entwickelt. Viele Konfigurationen sind generell für alle Proxmox-Umgebungen anwendbar, aber nicht alles passt zu jedem Setup - prüfe immer, ob die Optimierungen zu deiner spezifischen Hardware und deinen Anforderungen passen.
 
-    kvm_amd.avic=1: Aktiviert Advanced Virtual Interrupt Controller
-        Warum: Hardware-beschleunigte Interrupt-Verarbeitung in VMs
-        Vorteil: Niedrigere Latenz und weniger CPU-Overhead bei I/O-Operations
+## 📁 Verzeichnisstruktur
 
-⚠️ Performance Parameter (Sicherheitsrelevant)
+### 🔧 optimizations
 
-    mitigations=off: Deaktiviert CPU-Sicherheits-Mitigationen für bessere Performance
-        ⚠️ ACHTUNG: Nur in geschützten, isolierten Umgebungen verwenden!
-        Risiko: Anfälligkeit für Spectre/Meltdown-ähnliche Angriffe
-        Vorteil: 5-15% Performance-Gewinn je nach Workload
-        Empfehlung: Nur in privaten Homelab-Umgebungen ohne Internet-Exposition
+**Performance- und Systemoptimierungen für Proxmox-Knoten**
 
-    nmi_watchdog=0: Deaktiviert NMI Watchdog für geringeren Overhead
-        Warum: Standard-Watchdog verursacht kontinuierliche CPU-Interrupts
-        Nachteil: Weniger Debugging-Info bei Kernel-Hangs
-        Vorteil: Reduziert CPU-Overhead um ~1-2%
+- AMD CPU-Optimierungen (Ryzen 5000 Serie)
+- ZFS Performance-Tuning
+- Kernel-Parameter-Optimierung
+- Memory-Management-Verbesserungen
+- Thermal-Management-Konfigurationen
 
-🔌 Hardware-spezifische Parameter
+**Hauptfunktionen:**
+- ⚡ CPU Governor und EPP Tuning
+- 💾 ZFS ARC Optimierung
+- 🌡️ Thermal-bewusste Frequenzskalierung
+- 🔒 Sicherheitsbewusste Performance-Optimierungen
 
-    pcie_aspm=off: Deaktiviert PCIe Active State Power Management
-        Warum: ASPM kann bei manchen NVMe-SSDs Instabilität verursachen
-        Nachteil: Leicht höherer Stromverbrauch im Idle
-        Vorteil: Verhindert NVMe-Timeouts und I/O-Freezes
+### 🤖 automation *(Demnächst)*
 
-    nvme_core.default_ps_max_latency_us=0: Deaktiviert NVMe Power Saving
-        Warum: Power-States können Latenz-Spikes verursachen
-        Trade-off: Höherer Stromverbrauch vs. konstante Performance
-        Ideal für: Systeme wo Performance wichtiger als Stromsparen ist
+**Automatisierte Deployment- und Management-Skripte**
 
-🖥️ System-Level Optimierungen
-🌐 IPv6 Konfiguration
+- VM-Template-Erstellung und -Verwaltung
+- Automatisierte Backup-Lösungen
+- Cluster-Knoten-Bereitstellung
+- Konfigurationssynchronisation zwischen Knoten
 
-    Zweck: IPv6 komplett deaktivieren da meist nicht benötigt
-    Warum abweichen: Standard aktiviert IPv6 automatisch
-    Probleme mit Standard: Unnötige Netzwerk-Komplexität, potentielle Sicherheitslücken
-    Vorteil: Reduziert Netzwerk-Overhead und Attack-Surface
-    Parameter: net.ipv6.conf.all.disable_ipv6=1
+### 📊 monitoring *(Demnächst)*
 
-💥 Kernel Panic Verhalten
+**Monitoring- und Alerting-Lösungen**
 
-    Zweck: System startet nach Kernel Panic automatisch neu
-    Standard: System bleibt hängen (panic=0)
-    Warum ändern: Unbeaufsichtigte Systeme sollen sich selbst recovern
-    Parameter: kernel.panic = 2 (Neustart nach 2 Sekunden)
-    Vorteil: Automatische Wiederherstellung bei kritischen Fehlern
-    Nachteil: Weniger Zeit für Debugging bei Kernel-Problemen
+- Benutzerdefinierte Prometheus-Exporter
+- Grafana-Dashboards
+- Temperatur- und Performance-Monitoring
+- Automatisierte Gesundheitschecks und Berichte
 
-💾 Memory Management
-🔄 Swappiness
+### 🛡️ security *(Demnächst)*
 
-    Standard: 60 (aggressives Swapping)
-    Optimiert: 10 (minimales Swapping)
-    Warum ändern: Proxmox-VMs brauchen vorhersagbare RAM-Performance
-    Problem mit Standard: VMs werden ausgelagert → Performance-Einbrüche
-    Vorteil: VMs bleiben im RAM, konstante Performance
-    Trade-off: Weniger verfügbarer RAM für Host-Prozesse
+**Sicherheitshärtung und Compliance**
 
-✍️ Writeback Optimierung
+- Firewall-Regel-Templates
+- SSL/TLS-Zertifikatsverwaltung
+- Benutzerzugriffskontroll-Automatisierung
+- Sicherheitsaudit-Skripte
 
-    Standard: 500 Centisekunden (5 Sekunden)
-    Optimiert: 1500 Centisekunden (15 Sekunden)
-    Warum ändern: Häufige kleine Writes schaden SSD-Lebensdauer
-    Vorteil: Bessere Write-Aggregation, längere SSD-Lebensdauer
-    Nachteil: Potentiell mehr Datenverlust bei Stromausfall
-    Mitigation: UPS empfohlen bei kritischen Daten
+### 🔄 backup-restore *(Demnächst)*
 
-💿 ZFS Optimierungen
-🧠 ARC (Adaptive Replacement Cache)
+**Backup und Disaster Recovery**
 
-    ARC Max: 50% des verfügbaren RAMs (statt 75% Standard)
-    ARC Min: 12.5% des verfügbaren RAMs (statt 6.25% Standard)
-    Warum konservativer: VMs brauchen garantierten RAM-Zugang
-    Problem mit Standard: ZFS kann zu viel RAM "stehlen"
-    Vorteil: Ausgewogenes Verhältnis zwischen ZFS-Cache und VM-Memory
-    Dynamisch: Passt sich automatisch an verfügbaren RAM an
+- Automatisierte Backup-Strategien
+- Cross-Site-Replikations-Skripte
+- Disaster-Recovery-Verfahren
+- Backup-Verifikation und -Tests
 
-⚡ ZFS Performance Parameter
+### 🌐 networking *(Demnächst)*
 
-    zfs_prefetch_disable=0: Aktiviert Prefetching für bessere Read-Performance
-        Standard: Oft deaktiviert aus Vorsicht
-        Warum aktivieren: Moderne NVMe-SSDs profitieren von Prefetching
+**Netzwerkkonfiguration und -verwaltung**
 
-    zfs_txg_timeout=5: Optimiert Transaction Group Timeout
-        Standard: 5 Sekunden (bereits optimal)
-        Zweck: Explizit setzen für Konsistenz
+- SDN (Software Defined Networking) Templates
+- VLAN- und Bridge-Konfigurationen
+- VPN-Integrations-Skripte
+- Netzwerk-Performance-Optimierung
 
-    zfs_vdev_scheduler=mq-deadline: Verwendet optimalen I/O Scheduler
-        Standard: Oft "none" oder "mq-deadline"
-        Warum explizit: Garantiert optimalen Scheduler für alle Devices
+### 📦 storage *(Demnächst)*
 
-🖥️ CPU-spezifische Optimierungen
-🔥 AMD 5825U (8 Kerne) - Balanced Performance
+**Storage-Management und -Optimierung**
 
-    Governor: powersave (statt performance)
-        Warum: Kombiniert mit EPP für intelligente Skalierung
-    EPP: balance_power
-        Warum: Responsive bei Last, sparsam im Idle
-    Max Frequency: 95% (4.32 GHz statt 4.55 GHz)
-        Grund: 5% Performance-Verlust für 10°C weniger Hitze
-    Ziel-Temperatur: ~50°C
+- ZFS-Pool-Verwaltung
+- Ceph-Cluster-Automatisierung
+- Storage-Migrations-Tools
+- Kapazitätsplanungs-Utilities
 
-🌡️ AMD 5425U (4 Kerne) - Thermal-fokussiert
+## 🎯 Zielumgebungen
 
-    Governor: powersave
-    EPP: balance_power
-    Max Frequency: 90% (3.6 GHz statt 4.0 GHz)
-        Warum konservativer: 4-Kern-Design läuft heißer als 8-Kern
-    Ziel-Temperatur: ~52-55°C
+### 🏠 Homelab
 
-📈 Erwartete Verbesserungen
-🚀 Performance
+- Kleine Deployments (1-4 Knoten)
+- Kosteneffektive Optimierungen
+- Lern- und Experimentier-Fokus
+- Performance über Enterprise-Features
 
-    VM-Performance: +10-15% durch AMD KVM-Optimierungen
-    I/O-Performance: +20% durch NVMe und ZFS-Optimierungen
-    Boot-Zeit: -10% durch deaktivierte Mitigationen
-    Netzwerk: +5% durch IPv6-Deaktivierung
+### 🏢 Kleine Unternehmen
 
-⚡ Effizienz
+- Mittlere Deployments (5-20 Knoten)
+- Zuverlässigkeits- und Uptime-Fokus
+- Automatisierte Verwaltung
+- Compliance-Überlegungen
 
-    Idle-Stromverbrauch: -15-20% durch EPP-Optimierung
-    Thermal-Performance: -5-10°C durch Frequency-Limiting
-    SSD-Lebensdauer: +20% durch optimierte Write-Patterns
-    RAM-Effizienz: +10% durch ZFS ARC-Tuning
+### 🏭 Enterprise *(Zukunft)*
 
-🛡️ Stabilität
+- Große Deployments (20+ Knoten)
+- Hochverfügbarkeits-Anforderungen
+- Erweiterte Überwachung und Alerting
+- Compliance und Audit-Trails
 
-    Automatischer Recovery: Kernel Panic Handling
-    Reduzierte Komplexität: IPv6 deaktiviert
-    Optimierte Memory-Nutzung: Swappiness und ARC-Tuning
-    NVMe-Stabilität: ASPM und Power-States deaktiviert
+## 🔧 Hardware-Kompatibilität
 
-🔧 Installation
+### ✅ Getestete Plattformen
 
-    📝 Script als root ausführen
-    🔄 System neustarten für Kernel-Parameter
-    🌡️ Thermal-Monitoring für 24h
-    ⚙️ Bei Bedarf CPU-Limits anpassen
+- **AMD Ryzen 5000 Serie** (5425U, 5825U)
+- **Intel 12. Generation und neuer**
+- **NVMe Storage** (Verschiedene Hersteller)
+- **DDR4/DDR5 Memory** (8GB-128GB Konfigurationen)
 
-📊 Monitoring
-🌡️ Thermal-Status prüfen
+### 📋 Proxmox-Versionen
 
-sensors | grep Tctl
-🖥️ CPU-Konfiguration prüfen
+- **Proxmox VE 9.x** (Hauptfokus)
+- **Proxmox VE 8.x** (Vollständige Unterstützung)
 
-cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor
-cat /sys/devices/system/cpu/cpu0/cpufreq/energy_performance_preference
-💿 ZFS ARC Status
+## 🚀 Schnellstart
 
-cat /proc/spl/kstat/zfs/arcstats | grep -E "^size|^c_max|^c_min"
-⚡ Performance-Baseline
+### 1. 📥 Repository klonen
 
-iostat -x 1 5 # I/O Performance
-htop # CPU/Memory Usage
-⚠️ Sicherheitshinweise
-🔒 Mitigations=off Risiken
+    git clone https://github.com/somnium78/proxmox-stuff.git
+    cd proxmox-stuff
 
-    Nur verwenden in: Isolierten Homelab-Umgebungen
-    NICHT verwenden bei: Internet-exponierten Systemen
-    NICHT verwenden bei: Multi-Tenant-Umgebungen
-    NICHT verwenden bei: Produktions-Systemen mit sensiblen Daten
+### 2. 🔍 Fokusbereich wählen
 
-🛡️ Empfohlene Sicherheitsmaßnahmen
+Navigiere zum relevanten Verzeichnis basierend auf deinen Bedürfnissen:
 
-    Firewall mit strikten Regeln
-    Regelmäßige Backups
-    Monitoring auf ungewöhnliche Aktivitäten
-    Separate Netzwerk-Segmentierung
+- Performance-Probleme? → optimizations
+- Automatisierung benötigt? → automation (demnächst)
+- Monitoring gewünscht? → monitoring (demnächst)
 
-🔄 Rückgängig machen
+### 3. 📖 Dokumentation lesen
 
-Falls Probleme auftreten, können alle Änderungen rückgängig gemacht werden:
-📝 Kernel Parameter zurücksetzen
+Jedes Verzeichnis enthält detaillierte README-Dateien mit:
 
-echo "root=ZFS=rpool/ROOT/pve-1 boot=zfs" > /etc/kernel/cmdline
-proxmox-boot-tool refresh
-🗑️ Sysctl-Dateien entfernen
+- Voraussetzungen und Anforderungen
+- Schritt-für-Schritt-Installationsanleitungen
+- Konfigurationserklärungen
+- Troubleshooting-Tipps
 
-rm /etc/sysctl.d/ipv6.conf
-rm /etc/sysctl.d/swappiness.conf
-rm /etc/sysctl.d/writeback.conf
-💿 ZFS auf Standard
+### 4. 🧪 Zuerst testen
 
-echo "# ZFS defaults" > /etc/modprobe.d/zfs.conf
-🔄 System neustarten
+Teste Skripte immer in Nicht-Produktionsumgebungen:
 
-reboot
-✅ Kompatibilität
+- Verwende VM-Snapshots vor größeren Änderungen
+- Überwache das Systemverhalten für 24-48 Stunden
+- Halte Rollback-Verfahren bereit
 
-Diese Optimierungen sind getestet für:
+## ⚠️ Wichtige Warnungen
 
-    🖥️ Proxmox VE 8.x
-    🔧 AMD Ryzen 5000 Serie
-    💾 ZFS auf NVMe Storage
-    🖥️ KVM-Virtualisierung
-    🏠 Homelab-Umgebungen
+### 🔒 Sicherheitsüberlegungen
 
-🎯 Fazit
+- Einige Optimierungen tauschen Sicherheit gegen Performance
+- Überprüfe alle Skripte vor der Ausführung
+- Verstehe die Auswirkungen jeder Änderung
+- Verwende angemessene Sicherheitsmaßnahmen für deine Umgebung
 
-Diese Optimierungen bieten erhebliche Performance-Verbesserungen, erfordern aber bewusste Abwägungen zwischen Sicherheit, Stabilität und Leistung. Sie sind ideal für Homelab-Umgebungen, wo maximale Performance wichtiger ist als absolute Sicherheit.
+### 🧪 Test-Anforderungen
 
-Grundregel: Verstehe jede Änderung bevor du sie anwendest! 🧠
+- **NIEMALS** Skripte direkt in der Produktion ausführen
+- Sichere Konfigurationen immer vor Änderungen
+- Teste zuerst in isolierten Umgebungen
+- Überwache die Systemstabilität nach Änderungen
+
+### 📋 Voraussetzungen
+
+- Root-Zugriff auf Proxmox-Knoten
+- Grundverständnis der Linux-Systemadministration
+- Vertrautheit mit Proxmox-Konzepten
+- Backup- und Recovery-Verfahren vorhanden
+
+## 🤝 Mitwirken
+
+### 📝 Wie man mitwirkt
+
+1. Repository forken
+2. Feature-Branch erstellen (git checkout -b feature/amazing-feature)
+3. Änderungen gründlich testen
+4. Modifikationen dokumentieren
+5. Pull Request mit detaillierter Beschreibung einreichen
+
+### 🎯 Beitragsrichtlinien
+
+- Folge dem bestehenden Code-Stil und der Struktur
+- Füge umfassende Dokumentation hinzu
+- Teste auf verschiedenen Hardware-Konfigurationen
+- Berücksichtige Sicherheitsauswirkungen
+- Aktualisiere relevante README-Dateien
+
+### 🐛 Fehlerberichte
+
+Bei der Meldung von Problemen, füge hinzu:
+
+- Proxmox-Version und Build
+- Hardware-Spezifikationen
+- Vollständige Fehlermeldungen
+- Schritte zur Reproduktion
+- System-Logs falls relevant
+
+## 📚 Dokumentationsstandards
+
+### 📖 Jedes Skript sollte enthalten
+
+- **Zweck**: Was das Skript macht
+- **Voraussetzungen**: Systemanforderungen
+- **Verwendung**: Wie das Skript ausgeführt wird
+- **Parameter**: Verfügbare Optionen
+- **Beispiele**: Häufige Anwendungsfälle
+- **Troubleshooting**: Häufige Probleme und Lösungen
+
+### 🌍 Sprachunterstützung
+
+- **Primär**: Englische Dokumentation
+- **Sekundär**: Deutsche Dokumentation (wo anwendbar)
+- **Code-Kommentare**: Nur Englisch für Konsistenz
+
+## 🔄 Versionsverwaltung
+
+### 📋 Versionierungsschema
+
+- **Major.Minor.Patch** (z.B. 1.2.3)
+- **Major**: Breaking Changes oder große neue Features
+- **Minor**: Neue Features, rückwärtskompatibel
+- **Patch**: Bugfixes und kleinere Verbesserungen
+
+### 📅 Release-Zeitplan
+
+- **Stabile Releases**: Monatlich
+- **Beta-Releases**: Zweiwöchentlich
+- **Hotfixes**: Nach Bedarf für kritische Probleme
+
+## 📞 Support und Community
+
+### 🆘 Hilfe bekommen
+
+1. Bestehende Dokumentation prüfen
+2. Geschlossene Issues durchsuchen
+3. Detaillierten Issue-Report erstellen
+4. An Community-Diskussionen teilnehmen
+
+### 💬 Community-Ressourcen
+
+- GitHub Issues für Fehlerberichte
+- Discussions für allgemeine Fragen
+- Wiki für Community-Beiträge
+- Examples Repository für Anwendungsfälle
+
+## 📜 Lizenz
+
+Dieses Projekt ist unter der GNU General Public License v3.0 lizenziert - siehe die LICENSE-Datei für Details.
+
+### 🔓 Lizenz-Zusammenfassung
+
+- ✅ Kommerzielle Nutzung erlaubt
+- ✅ Modifikation erlaubt
+- ✅ Distribution erlaubt
+- ✅ Patent-Nutzung erlaubt
+- ✅ Private Nutzung erlaubt
+- ❌ Haftungsbeschränkungen
+- ❌ Garantiebeschränkungen
+- ⚠️ Lizenz- und Copyright-Hinweis erforderlich
+- ⚠️ Änderungen müssen angegeben werden
+- ⚠️ Quellcode muss offengelegt werden
+- ⚠️ Gleiche Lizenz erforderlich
+
+## 🙏 Danksagungen
+
+### 👥 Mitwirkende
+
+- Community-Mitglieder, die testen und Feedback geben
+- Hardware-Hersteller für Kompatibilitätsinformationen
+- Proxmox-Team für die exzellente Virtualisierungsplattform
+- Open-Source-Projekte, die diese Lösungen inspirieren
+
+### 🔗 Inspiration
+
+- Offizielle Proxmox-Dokumentation
+- Community Best Practices
+- Performance-Tuning-Guides
+- Erfahrungen aus realen Deployments
+
+---
+
+**Denk daran**: Diese Skripte sind Werkzeuge zur Verbesserung deiner Proxmox-Erfahrung. Verstehe immer, was du ausführst, und teste gründlich! 🧠
+
+---
+
+*Zuletzt aktualisiert: 2025-08-29*  
+*Repository gepflegt von [somnium78](https://github.com/somnium78)*
+

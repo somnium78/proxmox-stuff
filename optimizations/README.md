@@ -1,239 +1,291 @@
-🚀 Proxmox AMD Optimization Guide
-📋 Overview
+# 🚀 Proxmox Management Scripts Collection
 
-These optimizations are specifically developed for AMD-based Proxmox systems and improve performance, energy efficiency, and stability. The configurations deliberately deviate from standard settings to achieve maximum performance in controlled environments.
-⚡ Kernel Parameter Optimizations
-🔧 AMD-specific Parameters
+## 📋 Overview
 
-    amd_pstate=active: Activates AMD P-State Driver for better frequency scaling
-        Why: Standard ACPI-CPPC is less efficient than native AMD driver
-        Benefit: Up to 15% better energy efficiency and more responsive frequency adjustment
+This repository contains a comprehensive collection of scripts, configurations, and documentation for managing and optimizing Proxmox Virtual Environment (PVE) clusters. Each directory focuses on specific aspects of Proxmox administration, from performance optimization to automation and monitoring.
 
-    kvm_amd.npt=1: Enables Nested Page Tables for better VM performance
-        Why: Drastically reduces memory management overhead in VMs
-        Benefit: 10-20% better VM performance for memory-intensive workloads
+**Note**: These optimizations are primarily developed for my homelab cluster based on mini-PCs. While many configurations are generally applicable to all Proxmox environments, not everything will suit every setup - always evaluate whether the optimizations match your specific hardware and requirements.
 
-    kvm_amd.avic=1: Enables Advanced Virtual Interrupt Controller
-        Why: Hardware-accelerated interrupt processing in VMs
-        Benefit: Lower latency and less CPU overhead for I/O operations
+## 📁 Directory Structure
 
-⚠️ Performance Parameters (Security-relevant)
+### 🔧 optimizations
 
-    mitigations=off: Disables CPU security mitigations for better performance
-        ⚠️ WARNING: Only use in protected, isolated environments!
-        Risk: Vulnerability to Spectre/Meltdown-like attacks
-        Benefit: 5-15% performance gain depending on workload
-        Recommendation: Only in private homelab environments without internet exposure
+**Performance and system optimizations for Proxmox nodes**
 
-    nmi_watchdog=0: Disables NMI Watchdog for lower overhead
-        Why: Standard watchdog causes continuous CPU interrupts
-        Downside: Less debugging info during kernel hangs
-        Benefit: Reduces CPU overhead by ~1-2%
+- AMD CPU optimizations (Ryzen 5000 series)
+- ZFS performance tuning
+- Kernel parameter optimization
+- Memory management improvements
+- Thermal management configurations
 
-🔌 Hardware-specific Parameters
+**Key Features:**
+- ⚡ CPU governor and EPP tuning
+- 💾 ZFS ARC optimization
+- 🌡️ Thermal-aware frequency scaling
+- 🔒 Security-conscious performance tweaks
 
-    pcie_aspm=off: Disables PCIe Active State Power Management
-        Why: ASPM can cause instability with some NVMe SSDs
-        Downside: Slightly higher idle power consumption
-        Benefit: Prevents NVMe timeouts and I/O freezes
+### 🤖 automation *(Coming Soon)*
 
-    nvme_core.default_ps_max_latency_us=0: Disables NVMe Power Saving
-        Why: Power states can cause latency spikes
-        Trade-off: Higher power consumption vs. consistent performance
-        Ideal for: Systems where performance is more important than power saving
+**Automated deployment and management scripts**
 
-🖥️ System-Level Optimizations
-🌐 IPv6 Configuration
+- VM template creation and management
+- Automated backup solutions
+- Cluster node provisioning
+- Configuration synchronization across nodes
 
-    Purpose: Completely disable IPv6 as it's usually not needed
-    Why deviate: Standard enables IPv6 automatically
-    Problems with standard: Unnecessary network complexity, potential security vulnerabilities
-    Benefit: Reduces network overhead and attack surface
-    Parameter: net.ipv6.conf.all.disable_ipv6=1
+### 📊 monitoring *(Coming Soon)*
 
-💥 Kernel Panic Behavior
+**Monitoring and alerting solutions**
 
-    Purpose: System automatically restarts after kernel panic
-    Standard: System hangs (panic=0)
-    Why change: Unattended systems should self-recover
-    Parameter: kernel.panic = 2 (restart after 2 seconds)
-    Benefit: Automatic recovery from critical errors
-    Downside: Less time for debugging kernel problems
+- Custom Prometheus exporters
+- Grafana dashboards
+- Temperature and performance monitoring
+- Automated health checks and reporting
 
-💾 Memory Management
-🔄 Swappiness
+### 🛡️ security *(Coming Soon)*
 
-    Standard: 60 (aggressive swapping)
-    Optimized: 10 (minimal swapping)
-    Why change: Proxmox VMs need predictable RAM performance
-    Problem with standard: VMs get swapped out → performance drops
-    Benefit: VMs stay in RAM, consistent performance
-    Trade-off: Less available RAM for host processes
+**Security hardening and compliance**
 
-✍️ Writeback Optimization
+- Firewall rule templates
+- SSL/TLS certificate management
+- User access control automation
+- Security audit scripts
 
-    Standard: 500 centiseconds (5 seconds)
-    Optimized: 1500 centiseconds (15 seconds)
-    Why change: Frequent small writes harm SSD lifespan
-    Benefit: Better write aggregation, longer SSD lifespan
-    Downside: Potentially more data loss during power failure
-    Mitigation: UPS recommended for critical data
+### 🔄 backup-restore *(Coming Soon)*
 
-💿 ZFS Optimizations
-🧠 ARC (Adaptive Replacement Cache)
+**Backup and disaster recovery**
 
-    ARC Max: 50% of available RAM (instead of 75% standard)
-    ARC Min: 12.5% of available RAM (instead of 6.25% standard)
-    Why more conservative: VMs need guaranteed RAM access
-    Problem with standard: ZFS can "steal" too much RAM
-    Benefit: Balanced ratio between ZFS cache and VM memory
-    Dynamic: Automatically adapts to available RAM
+- Automated backup strategies
+- Cross-site replication scripts
+- Disaster recovery procedures
+- Backup verification and testing
 
-⚡ ZFS Performance Parameters
+### 🌐 networking *(Coming Soon)*
 
-    zfs_prefetch_disable=0: Enables prefetching for better read performance
-        Standard: Often disabled out of caution
-        Why enable: Modern NVMe SSDs benefit from prefetching
+**Network configuration and management**
 
-    zfs_txg_timeout=5: Optimizes Transaction Group Timeout
-        Standard: 5 seconds (already optimal)
-        Purpose: Explicitly set for consistency
+- SDN (Software Defined Networking) templates
+- VLAN and bridge configurations
+- VPN integration scripts
+- Network performance optimization
 
-    zfs_vdev_scheduler=mq-deadline: Uses optimal I/O scheduler
-        Standard: Often "none" or "mq-deadline"
-        Why explicit: Guarantees optimal scheduler for all devices
+### 📦 storage *(Coming Soon)*
 
-🖥️ CPU-specific Optimizations
-🔥 AMD 5825U (8 cores) - Balanced Performance
+**Storage management and optimization**
 
-    Governor: powersave (instead of performance)
-        Why: Combined with EPP for intelligent scaling
-    EPP: balance_power
-        Why: Responsive under load, efficient at idle
-    Max Frequency: 95% (4.32 GHz instead of 4.55 GHz)
-        Reason: 5% performance loss for 10°C less heat
-    Target Temperature: ~50°C
+- ZFS pool management
+- Ceph cluster automation
+- Storage migration tools
+- Capacity planning utilities
 
-🌡️ AMD 5425U (4 cores) - Thermal-focused
+## 🎯 Target Environments
 
-    Governor: powersave
-    EPP: balance_power
-    Max Frequency: 90% (3.6 GHz instead of 4.0 GHz)
-        Why more conservative: 4-core design runs hotter than 8-core
-    Target Temperature: ~52-55°C
+### 🏠 Homelab
 
-📈 Expected Improvements
-🚀 Performance
+- Small-scale deployments (1-4 nodes)
+- Cost-effective optimizations
+- Learning and experimentation focus
+- Performance over enterprise features
 
-    VM Performance: +10-15% through AMD KVM optimizations
-    I/O Performance: +20% through NVMe and ZFS optimizations
-    Boot Time: -10% through disabled mitigations
-    Network: +5% through IPv6 deactivation
+### 🏢 Small Business
 
-⚡ Efficiency
+- Medium-scale deployments (5-20 nodes)
+- Reliability and uptime focus
+- Automated management
+- Compliance considerations
 
-    Idle Power Consumption: -15-20% through EPP optimization
-    Thermal Performance: -5-10°C through frequency limiting
-    SSD Lifespan: +20% through optimized write patterns
-    RAM Efficiency: +10% through ZFS ARC tuning
+### 🏭 Enterprise *(Future)*
 
-🛡️ Stability
+- Large-scale deployments (20+ nodes)
+- High availability requirements
+- Advanced monitoring and alerting
+- Compliance and audit trails
 
-    Automatic Recovery: Kernel panic handling
-    Reduced Complexity: IPv6 disabled
-    Optimized Memory Usage: Swappiness and ARC tuning
-    NVMe Stability: ASPM and power states disabled
+## 🔧 Hardware Compatibility
 
-🔧 Installation
+### ✅ Tested Platforms
 
-    📝 Run script as root
-    🔄 Restart system for kernel parameters
-    🌡️ Monitor thermals for 24h
-    ⚙️ Adjust CPU limits if needed
+- **AMD Ryzen 5000 Series** (5425U, 5825U)
+- **Intel 12th Gen and newer**
+- **NVMe Storage** (Various manufacturers)
+- **DDR4/DDR5 Memory** (8GB-128GB configurations)
 
-📊 Monitoring
-🌡️ Check Thermal Status
+### 📋 Proxmox Versions
 
-sensors | grep Tctl
-🖥️ Check CPU Configuration
+- **Proxmox VE 9.x** (Primary focus)
+- **Proxmox VE 8.x** (Full support)
 
-cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor
-cat /sys/devices/system/cpu/cpu0/cpufreq/energy_performance_preference
-💿 ZFS ARC Status
+## 🚀 Quick Start
 
-cat /proc/spl/kstat/zfs/arcstats | grep -E "^size|^c_max|^c_min"
-⚡ Performance Baseline
+### 1. 📥 Clone Repository
 
-iostat -x 1 5 # I/O Performance
-htop # CPU/Memory Usage
-⚠️ Security Warnings
-🔒 Mitigations=off Risks
+    git clone https://github.com/somnium78/proxmox-stuff.git
+    cd proxmox-stuff
 
-    Only use in: Isolated homelab environments
-    DO NOT use with: Internet-exposed systems
-    DO NOT use with: Multi-tenant environments
-    DO NOT use with: Production systems with sensitive data
+### 2. 🔍 Choose Your Focus Area
 
-🛡️ Recommended Security Measures
+Navigate to the relevant directory based on your needs:
 
-    Firewall with strict rules
-    Regular backups
-    Monitor for unusual activities
-    Separate network segmentation
+- Performance issues? → optimizations
+- Need automation? → automation (coming soon)
+- Want monitoring? → monitoring (coming soon)
 
-🔄 Reverting Changes
+### 3. 📖 Read Documentation
 
-If problems occur, all changes can be reverted:
-📝 Reset Kernel Parameters
+Each directory contains detailed README files with:
 
-echo "root=ZFS=rpool/ROOT/pve-1 boot=zfs" > /etc/kernel/cmdline
-proxmox-boot-tool refresh
-🗑️ Remove Sysctl Files
+- Prerequisites and requirements
+- Step-by-step installation guides
+- Configuration explanations
+- Troubleshooting tips
 
-rm /etc/sysctl.d/ipv6.conf
-rm /etc/sysctl.d/swappiness.conf
-rm /etc/sysctl.d/writeback.conf
-💿 Reset ZFS to Defaults
+### 4. 🧪 Test First
 
-echo "# ZFS defaults" > /etc/modprobe.d/zfs.conf
-🔄 Restart System
+Always test scripts in non-production environments:
 
-reboot
-✅ Compatibility
+- Use VM snapshots before major changes
+- Monitor system behavior for 24-48 hours
+- Have rollback procedures ready
 
-These optimizations are tested for:
+## ⚠️ Important Warnings
 
-    🖥️ Proxmox VE 8.x
-    🔧 AMD Ryzen 5000 Series
-    💾 ZFS on NVMe Storage
-    🖥️ KVM Virtualization
-    🏠 Homelab Environments
+### 🔒 Security Considerations
 
-🎯 Conclusion
+- Some optimizations trade security for performance
+- Review all scripts before execution
+- Understand the implications of each change
+- Use appropriate security measures for your environment
 
-These optimizations offer significant performance improvements but require conscious trade-offs between security, stability, and performance. They are ideal for homelab environments where maximum performance is more important than absolute security.
+### 🧪 Testing Requirements
 
-Golden Rule: Understand every change before applying it! 🧠
-📚 Additional Resources
-🔗 Useful Links
+- **NEVER** run scripts directly in production
+- Always backup configurations before changes
+- Test in isolated environments first
+- Monitor system stability after changes
 
-    AMD P-State Documentation
-    Proxmox Performance Tuning Guide
-    ZFS Tuning Best Practices
-    KVM Optimization Guidelines
+### 📋 Prerequisites
 
-🛠️ Tools for Monitoring
+- Root access to Proxmox nodes
+- Basic understanding of Linux system administration
+- Familiarity with Proxmox concepts
+- Backup and recovery procedures in place
 
-    htop: Real-time system monitoring
-    iotop: I/O monitoring
-    sensors: Temperature monitoring
-    zpool iostat: ZFS performance statistics
+## 🤝 Contributing
 
-🧪 Testing Recommendations
+### 📝 How to Contribute
 
-    Run stress tests after optimization
-    Monitor temperatures under load
-    Benchmark I/O performance before/after
-    Test VM migration and backup performance
+1. Fork the repository
+2. Create feature branch (git checkout -b feature/amazing-feature)
+3. Test your changes thoroughly
+4. Document your modifications
+5. Submit pull request with detailed description
 
-Remember: These optimizations prioritize performance over default safety margins. Always test in non-production environments first! 🧪
+### 🎯 Contribution Guidelines
+
+- Follow existing code style and structure
+- Include comprehensive documentation
+- Test on multiple hardware configurations
+- Consider security implications
+- Update relevant README files
+
+### 🐛 Bug Reports
+
+When reporting issues, include:
+
+- Proxmox version and build
+- Hardware specifications
+- Complete error messages
+- Steps to reproduce
+- System logs if relevant
+
+## 📚 Documentation Standards
+
+### 📖 Each Script Should Include
+
+- **Purpose**: What the script does
+- **Prerequisites**: System requirements
+- **Usage**: How to run the script
+- **Parameters**: Available options
+- **Examples**: Common use cases
+- **Troubleshooting**: Common issues and solutions
+
+### 🌍 Language Support
+
+- **Primary**: English documentation
+- **Secondary**: German documentation (where applicable)
+- **Code Comments**: English only for consistency
+
+## 🔄 Version Management
+
+### 📋 Versioning Scheme
+
+- **Major.Minor.Patch** (e.g., 1.2.3)
+- **Major**: Breaking changes or major new features
+- **Minor**: New features, backward compatible
+- **Patch**: Bug fixes and minor improvements
+
+### 📅 Release Schedule
+
+- **Stable releases**: Monthly
+- **Beta releases**: Bi-weekly
+- **Hotfixes**: As needed for critical issues
+
+## 📞 Support and Community
+
+### 🆘 Getting Help
+
+1. Check existing documentation
+2. Search closed issues
+3. Create detailed issue report
+4. Join community discussions
+
+### 💬 Community Resources
+
+- GitHub Issues for bug reports
+- Discussions for general questions
+- Wiki for community contributions
+- Examples repository for use cases
+
+## 📜 License
+
+This project is licensed under the GNU General Public License v3.0 - see the LICENSE file for details.
+
+### 🔓 License Summary
+
+- ✅ Commercial use allowed
+- ✅ Modification allowed
+- ✅ Distribution allowed
+- ✅ Patent use allowed
+- ✅ Private use allowed
+- ❌ Liability limitations
+- ❌ Warranty limitations
+- ⚠️ License and copyright notice required
+- ⚠️ State changes required
+- ⚠️ Disclose source required
+- ⚠️ Same license required
+
+## 🙏 Acknowledgments
+
+### 👥 Contributors
+
+- Community members who test and provide feedback
+- Hardware vendors for compatibility information
+- Proxmox team for excellent virtualization platform
+- Open source projects that inspire these solutions
+
+### 🔗 Inspiration
+
+- Proxmox official documentation
+- Community best practices
+- Performance tuning guides
+- Real-world deployment experiences
+
+---
+
+**Remember**: These scripts are tools to enhance your Proxmox experience. Always understand what you're running and test thoroughly! 🧠
+
+---
+
+*Last updated: 2025-08-29*  
+*Repository maintained by [somnium78](https://github.com/somnium78)*
+
