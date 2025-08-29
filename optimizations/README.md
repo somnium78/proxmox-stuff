@@ -1,216 +1,239 @@
 🚀 Proxmox AMD Optimization Guide
-📋 Übersicht
+📋 Overview
 
-Diese Optimierungen sind speziell für AMD-basierte Proxmox-Systeme entwickelt und verbessern Performance, Energieeffizienz und Stabilität. Die Konfigurationen weichen bewusst von Standard-Einstellungen ab, um maximale Leistung in kontrollierten Umgebungen zu erreichen.
-⚡ Kernel Parameter Optimierungen
-🔧 AMD-spezifische Parameter
+These optimizations are specifically developed for AMD-based Proxmox systems and improve performance, energy efficiency, and stability. The configurations deliberately deviate from standard settings to achieve maximum performance in controlled environments.
+⚡ Kernel Parameter Optimizations
+🔧 AMD-specific Parameters
 
-    amd_pstate=active: Aktiviert AMD P-State Driver für bessere Frequenzskalierung
-        Warum: Standard ACPI-CPPC ist weniger effizient als nativer AMD-Driver
-        Vorteil: Bis zu 15% bessere Energieeffizienz und responsivere Frequenzanpassung
+    amd_pstate=active: Activates AMD P-State Driver for better frequency scaling
+        Why: Standard ACPI-CPPC is less efficient than native AMD driver
+        Benefit: Up to 15% better energy efficiency and more responsive frequency adjustment
 
-    kvm_amd.npt=1: Aktiviert Nested Page Tables für bessere VM-Performance
-        Warum: Reduziert Memory-Management-Overhead in VMs drastisch
-        Vorteil: 10-20% bessere VM-Performance bei Memory-intensiven Workloads
+    kvm_amd.npt=1: Enables Nested Page Tables for better VM performance
+        Why: Drastically reduces memory management overhead in VMs
+        Benefit: 10-20% better VM performance for memory-intensive workloads
 
-    kvm_amd.avic=1: Aktiviert Advanced Virtual Interrupt Controller
-        Warum: Hardware-beschleunigte Interrupt-Verarbeitung in VMs
-        Vorteil: Niedrigere Latenz und weniger CPU-Overhead bei I/O-Operations
+    kvm_amd.avic=1: Enables Advanced Virtual Interrupt Controller
+        Why: Hardware-accelerated interrupt processing in VMs
+        Benefit: Lower latency and less CPU overhead for I/O operations
 
-⚠️ Performance Parameter (Sicherheitsrelevant)
+⚠️ Performance Parameters (Security-relevant)
 
-    mitigations=off: Deaktiviert CPU-Sicherheits-Mitigationen für bessere Performance
-        ⚠️ ACHTUNG: Nur in geschützten, isolierten Umgebungen verwenden!
-        Risiko: Anfälligkeit für Spectre/Meltdown-ähnliche Angriffe
-        Vorteil: 5-15% Performance-Gewinn je nach Workload
-        Empfehlung: Nur in privaten Homelab-Umgebungen ohne Internet-Exposition
+    mitigations=off: Disables CPU security mitigations for better performance
+        ⚠️ WARNING: Only use in protected, isolated environments!
+        Risk: Vulnerability to Spectre/Meltdown-like attacks
+        Benefit: 5-15% performance gain depending on workload
+        Recommendation: Only in private homelab environments without internet exposure
 
-    nmi_watchdog=0: Deaktiviert NMI Watchdog für geringeren Overhead
-        Warum: Standard-Watchdog verursacht kontinuierliche CPU-Interrupts
-        Nachteil: Weniger Debugging-Info bei Kernel-Hangs
-        Vorteil: Reduziert CPU-Overhead um ~1-2%
+    nmi_watchdog=0: Disables NMI Watchdog for lower overhead
+        Why: Standard watchdog causes continuous CPU interrupts
+        Downside: Less debugging info during kernel hangs
+        Benefit: Reduces CPU overhead by ~1-2%
 
-🔌 Hardware-spezifische Parameter
+🔌 Hardware-specific Parameters
 
-    pcie_aspm=off: Deaktiviert PCIe Active State Power Management
-        Warum: ASPM kann bei manchen NVMe-SSDs Instabilität verursachen
-        Nachteil: Leicht höherer Stromverbrauch im Idle
-        Vorteil: Verhindert NVMe-Timeouts und I/O-Freezes
+    pcie_aspm=off: Disables PCIe Active State Power Management
+        Why: ASPM can cause instability with some NVMe SSDs
+        Downside: Slightly higher idle power consumption
+        Benefit: Prevents NVMe timeouts and I/O freezes
 
-    nvme_core.default_ps_max_latency_us=0: Deaktiviert NVMe Power Saving
-        Warum: Power-States können Latenz-Spikes verursachen
-        Trade-off: Höherer Stromverbrauch vs. konstante Performance
-        Ideal für: Systeme wo Performance wichtiger als Stromsparen ist
+    nvme_core.default_ps_max_latency_us=0: Disables NVMe Power Saving
+        Why: Power states can cause latency spikes
+        Trade-off: Higher power consumption vs. consistent performance
+        Ideal for: Systems where performance is more important than power saving
 
-🖥️ System-Level Optimierungen
-🌐 IPv6 Konfiguration
+🖥️ System-Level Optimizations
+🌐 IPv6 Configuration
 
-    Zweck: IPv6 komplett deaktivieren da meist nicht benötigt
-    Warum abweichen: Standard aktiviert IPv6 automatisch
-    Probleme mit Standard: Unnötige Netzwerk-Komplexität, potentielle Sicherheitslücken
-    Vorteil: Reduziert Netzwerk-Overhead und Attack-Surface
+    Purpose: Completely disable IPv6 as it's usually not needed
+    Why deviate: Standard enables IPv6 automatically
+    Problems with standard: Unnecessary network complexity, potential security vulnerabilities
+    Benefit: Reduces network overhead and attack surface
     Parameter: net.ipv6.conf.all.disable_ipv6=1
 
-💥 Kernel Panic Verhalten
+💥 Kernel Panic Behavior
 
-    Zweck: System startet nach Kernel Panic automatisch neu
-    Standard: System bleibt hängen (panic=0)
-    Warum ändern: Unbeaufsichtigte Systeme sollen sich selbst recovern
-    Parameter: kernel.panic = 2 (Neustart nach 2 Sekunden)
-    Vorteil: Automatische Wiederherstellung bei kritischen Fehlern
-    Nachteil: Weniger Zeit für Debugging bei Kernel-Problemen
+    Purpose: System automatically restarts after kernel panic
+    Standard: System hangs (panic=0)
+    Why change: Unattended systems should self-recover
+    Parameter: kernel.panic = 2 (restart after 2 seconds)
+    Benefit: Automatic recovery from critical errors
+    Downside: Less time for debugging kernel problems
 
 💾 Memory Management
 🔄 Swappiness
 
-    Standard: 60 (aggressives Swapping)
-    Optimiert: 10 (minimales Swapping)
-    Warum ändern: Proxmox-VMs brauchen vorhersagbare RAM-Performance
-    Problem mit Standard: VMs werden ausgelagert → Performance-Einbrüche
-    Vorteil: VMs bleiben im RAM, konstante Performance
-    Trade-off: Weniger verfügbarer RAM für Host-Prozesse
+    Standard: 60 (aggressive swapping)
+    Optimized: 10 (minimal swapping)
+    Why change: Proxmox VMs need predictable RAM performance
+    Problem with standard: VMs get swapped out → performance drops
+    Benefit: VMs stay in RAM, consistent performance
+    Trade-off: Less available RAM for host processes
 
-✍️ Writeback Optimierung
+✍️ Writeback Optimization
 
-    Standard: 500 Centisekunden (5 Sekunden)
-    Optimiert: 1500 Centisekunden (15 Sekunden)
-    Warum ändern: Häufige kleine Writes schaden SSD-Lebensdauer
-    Vorteil: Bessere Write-Aggregation, längere SSD-Lebensdauer
-    Nachteil: Potentiell mehr Datenverlust bei Stromausfall
-    Mitigation: UPS empfohlen bei kritischen Daten
+    Standard: 500 centiseconds (5 seconds)
+    Optimized: 1500 centiseconds (15 seconds)
+    Why change: Frequent small writes harm SSD lifespan
+    Benefit: Better write aggregation, longer SSD lifespan
+    Downside: Potentially more data loss during power failure
+    Mitigation: UPS recommended for critical data
 
-💿 ZFS Optimierungen
+💿 ZFS Optimizations
 🧠 ARC (Adaptive Replacement Cache)
 
-    ARC Max: 50% des verfügbaren RAMs (statt 75% Standard)
-    ARC Min: 12.5% des verfügbaren RAMs (statt 6.25% Standard)
-    Warum konservativer: VMs brauchen garantierten RAM-Zugang
-    Problem mit Standard: ZFS kann zu viel RAM "stehlen"
-    Vorteil: Ausgewogenes Verhältnis zwischen ZFS-Cache und VM-Memory
-    Dynamisch: Passt sich automatisch an verfügbaren RAM an
+    ARC Max: 50% of available RAM (instead of 75% standard)
+    ARC Min: 12.5% of available RAM (instead of 6.25% standard)
+    Why more conservative: VMs need guaranteed RAM access
+    Problem with standard: ZFS can "steal" too much RAM
+    Benefit: Balanced ratio between ZFS cache and VM memory
+    Dynamic: Automatically adapts to available RAM
 
-⚡ ZFS Performance Parameter
+⚡ ZFS Performance Parameters
 
-    zfs_prefetch_disable=0: Aktiviert Prefetching für bessere Read-Performance
-        Standard: Oft deaktiviert aus Vorsicht
-        Warum aktivieren: Moderne NVMe-SSDs profitieren von Prefetching
+    zfs_prefetch_disable=0: Enables prefetching for better read performance
+        Standard: Often disabled out of caution
+        Why enable: Modern NVMe SSDs benefit from prefetching
 
-    zfs_txg_timeout=5: Optimiert Transaction Group Timeout
-        Standard: 5 Sekunden (bereits optimal)
-        Zweck: Explizit setzen für Konsistenz
+    zfs_txg_timeout=5: Optimizes Transaction Group Timeout
+        Standard: 5 seconds (already optimal)
+        Purpose: Explicitly set for consistency
 
-    zfs_vdev_scheduler=mq-deadline: Verwendet optimalen I/O Scheduler
-        Standard: Oft "none" oder "mq-deadline"
-        Warum explizit: Garantiert optimalen Scheduler für alle Devices
+    zfs_vdev_scheduler=mq-deadline: Uses optimal I/O scheduler
+        Standard: Often "none" or "mq-deadline"
+        Why explicit: Guarantees optimal scheduler for all devices
 
-🖥️ CPU-spezifische Optimierungen
-🔥 AMD 5825U (8 Kerne) - Balanced Performance
+🖥️ CPU-specific Optimizations
+🔥 AMD 5825U (8 cores) - Balanced Performance
 
-    Governor: powersave (statt performance)
-        Warum: Kombiniert mit EPP für intelligente Skalierung
+    Governor: powersave (instead of performance)
+        Why: Combined with EPP for intelligent scaling
     EPP: balance_power
-        Warum: Responsive bei Last, sparsam im Idle
-    Max Frequency: 95% (4.32 GHz statt 4.55 GHz)
-        Grund: 5% Performance-Verlust für 10°C weniger Hitze
-    Ziel-Temperatur: ~50°C
+        Why: Responsive under load, efficient at idle
+    Max Frequency: 95% (4.32 GHz instead of 4.55 GHz)
+        Reason: 5% performance loss for 10°C less heat
+    Target Temperature: ~50°C
 
-🌡️ AMD 5425U (4 Kerne) - Thermal-fokussiert
+🌡️ AMD 5425U (4 cores) - Thermal-focused
 
     Governor: powersave
     EPP: balance_power
-    Max Frequency: 90% (3.6 GHz statt 4.0 GHz)
-        Warum konservativer: 4-Kern-Design läuft heißer als 8-Kern
-    Ziel-Temperatur: ~52-55°C
+    Max Frequency: 90% (3.6 GHz instead of 4.0 GHz)
+        Why more conservative: 4-core design runs hotter than 8-core
+    Target Temperature: ~52-55°C
 
-📈 Erwartete Verbesserungen
+📈 Expected Improvements
 🚀 Performance
 
-    VM-Performance: +10-15% durch AMD KVM-Optimierungen
-    I/O-Performance: +20% durch NVMe und ZFS-Optimierungen
-    Boot-Zeit: -10% durch deaktivierte Mitigationen
-    Netzwerk: +5% durch IPv6-Deaktivierung
+    VM Performance: +10-15% through AMD KVM optimizations
+    I/O Performance: +20% through NVMe and ZFS optimizations
+    Boot Time: -10% through disabled mitigations
+    Network: +5% through IPv6 deactivation
 
-⚡ Effizienz
+⚡ Efficiency
 
-    Idle-Stromverbrauch: -15-20% durch EPP-Optimierung
-    Thermal-Performance: -5-10°C durch Frequency-Limiting
-    SSD-Lebensdauer: +20% durch optimierte Write-Patterns
-    RAM-Effizienz: +10% durch ZFS ARC-Tuning
+    Idle Power Consumption: -15-20% through EPP optimization
+    Thermal Performance: -5-10°C through frequency limiting
+    SSD Lifespan: +20% through optimized write patterns
+    RAM Efficiency: +10% through ZFS ARC tuning
 
-🛡️ Stabilität
+🛡️ Stability
 
-    Automatischer Recovery: Kernel Panic Handling
-    Reduzierte Komplexität: IPv6 deaktiviert
-    Optimierte Memory-Nutzung: Swappiness und ARC-Tuning
-    NVMe-Stabilität: ASPM und Power-States deaktiviert
+    Automatic Recovery: Kernel panic handling
+    Reduced Complexity: IPv6 disabled
+    Optimized Memory Usage: Swappiness and ARC tuning
+    NVMe Stability: ASPM and power states disabled
 
 🔧 Installation
 
-    📝 Script als root ausführen
-    🔄 System neustarten für Kernel-Parameter
-    🌡️ Thermal-Monitoring für 24h
-    ⚙️ Bei Bedarf CPU-Limits anpassen
+    📝 Run script as root
+    🔄 Restart system for kernel parameters
+    🌡️ Monitor thermals for 24h
+    ⚙️ Adjust CPU limits if needed
 
 📊 Monitoring
-🌡️ Thermal-Status prüfen
+🌡️ Check Thermal Status
 
 sensors | grep Tctl
-🖥️ CPU-Konfiguration prüfen
+🖥️ Check CPU Configuration
 
 cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor
 cat /sys/devices/system/cpu/cpu0/cpufreq/energy_performance_preference
 💿 ZFS ARC Status
 
 cat /proc/spl/kstat/zfs/arcstats | grep -E "^size|^c_max|^c_min"
-⚡ Performance-Baseline
+⚡ Performance Baseline
 
 iostat -x 1 5 # I/O Performance
 htop # CPU/Memory Usage
-⚠️ Sicherheitshinweise
-🔒 Mitigations=off Risiken
+⚠️ Security Warnings
+🔒 Mitigations=off Risks
 
-    Nur verwenden in: Isolierten Homelab-Umgebungen
-    NICHT verwenden bei: Internet-exponierten Systemen
-    NICHT verwenden bei: Multi-Tenant-Umgebungen
-    NICHT verwenden bei: Produktions-Systemen mit sensiblen Daten
+    Only use in: Isolated homelab environments
+    DO NOT use with: Internet-exposed systems
+    DO NOT use with: Multi-tenant environments
+    DO NOT use with: Production systems with sensitive data
 
-🛡️ Empfohlene Sicherheitsmaßnahmen
+🛡️ Recommended Security Measures
 
-    Firewall mit strikten Regeln
-    Regelmäßige Backups
-    Monitoring auf ungewöhnliche Aktivitäten
-    Separate Netzwerk-Segmentierung
+    Firewall with strict rules
+    Regular backups
+    Monitor for unusual activities
+    Separate network segmentation
 
-🔄 Rückgängig machen
+🔄 Reverting Changes
 
-Falls Probleme auftreten, können alle Änderungen rückgängig gemacht werden:
-📝 Kernel Parameter zurücksetzen
+If problems occur, all changes can be reverted:
+📝 Reset Kernel Parameters
 
 echo "root=ZFS=rpool/ROOT/pve-1 boot=zfs" > /etc/kernel/cmdline
 proxmox-boot-tool refresh
-🗑️ Sysctl-Dateien entfernen
+🗑️ Remove Sysctl Files
 
 rm /etc/sysctl.d/ipv6.conf
 rm /etc/sysctl.d/swappiness.conf
 rm /etc/sysctl.d/writeback.conf
-💿 ZFS auf Standard
+💿 Reset ZFS to Defaults
 
 echo "# ZFS defaults" > /etc/modprobe.d/zfs.conf
-🔄 System neustarten
+🔄 Restart System
 
 reboot
-✅ Kompatibilität
+✅ Compatibility
 
-Diese Optimierungen sind getestet für:
+These optimizations are tested for:
 
     🖥️ Proxmox VE 8.x
-    🔧 AMD Ryzen 5000 Serie
-    💾 ZFS auf NVMe Storage
-    🖥️ KVM-Virtualisierung
-    🏠 Homelab-Umgebungen
+    🔧 AMD Ryzen 5000 Series
+    💾 ZFS on NVMe Storage
+    🖥️ KVM Virtualization
+    🏠 Homelab Environments
 
-🎯 Fazit
+🎯 Conclusion
 
-Diese Optimierungen bieten erhebliche Performance-Verbesserungen, erfordern aber bewusste Abwägungen zwischen Sicherheit, Stabilität und Leistung. Sie sind ideal für Homelab-Umgebungen, wo maximale Performance wichtiger ist als absolute Sicherheit.
+These optimizations offer significant performance improvements but require conscious trade-offs between security, stability, and performance. They are ideal for homelab environments where maximum performance is more important than absolute security.
 
-Grundregel: Verstehe jede Änderung bevor du sie anwendest! 🧠
+Golden Rule: Understand every change before applying it! 🧠
+📚 Additional Resources
+🔗 Useful Links
+
+    AMD P-State Documentation
+    Proxmox Performance Tuning Guide
+    ZFS Tuning Best Practices
+    KVM Optimization Guidelines
+
+🛠️ Tools for Monitoring
+
+    htop: Real-time system monitoring
+    iotop: I/O monitoring
+    sensors: Temperature monitoring
+    zpool iostat: ZFS performance statistics
+
+🧪 Testing Recommendations
+
+    Run stress tests after optimization
+    Monitor temperatures under load
+    Benchmark I/O performance before/after
+    Test VM migration and backup performance
+
+Remember: These optimizations prioritize performance over default safety margins. Always test in non-production environments first! 🧪

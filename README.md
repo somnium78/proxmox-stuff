@@ -1,9 +1,13 @@
-🚀 Proxmox Management Scripts Collection
-📋 Overview
+# 🚀 Proxmox Management Scripts Collection
+## 📋 Overview
 
 This repository contains a comprehensive collection of scripts, configurations, and documentation for managing and optimizing Proxmox Virtual Environment (PVE) clusters. Each directory focuses on specific aspects of Proxmox administration, from performance optimization to automation and monitoring.
-📁 Directory Structure
-🔧 /optimizations
+
+***Note***: These optimizations are primarily developed for my homelab cluster based on mini-PCs. While many configurations are generally applicable to all Proxmox environments, not everything will suit every setup - always evaluate whether the optimizations match your specific hardware and requirements.
+
+
+# 📁 Directory Structure
+## 🔧 /optimizations
 
 Performance and system optimizations for Proxmox nodes
 
@@ -20,7 +24,7 @@ Key Features:
     🌡️ Thermal-aware frequency scaling
     🔒 Security-conscious performance tweaks
 
-🤖 /automation (Coming Soon)
+## 🤖 /automation (Coming Soon)
 
 Automated deployment and management scripts
 
@@ -29,7 +33,7 @@ Automated deployment and management scripts
     Cluster node provisioning
     Configuration synchronization across nodes
 
-📊 /monitoring (Coming Soon)
+## 📊 /monitoring (Coming Soon)
 
 Monitoring and alerting solutions
 
@@ -38,7 +42,7 @@ Monitoring and alerting solutions
     Temperature and performance monitoring
     Automated health checks and reporting
 
-🛡️ /security (Coming Soon)
+## 🛡️ /security (Coming Soon)
 
 Security hardening and compliance
 
@@ -47,7 +51,7 @@ Security hardening and compliance
     User access control automation
     Security audit scripts
 
-🔄 /backup-restore (Coming Soon)
+## 🔄 /backup-restore (Coming Soon)
 
 Backup and disaster recovery
 
@@ -56,7 +60,7 @@ Backup and disaster recovery
     Disaster recovery procedures
     Backup verification and testing
 
-🌐 /networking (Coming Soon)
+## 🌐 /networking (Coming Soon)
 
 Network configuration and management
 
@@ -65,7 +69,7 @@ Network configuration and management
     VPN integration scripts
     Network performance optimization
 
-📦 /storage (Coming Soon)
+## 📦 /storage (Coming Soon)
 
 Storage management and optimization
 
@@ -74,42 +78,42 @@ Storage management and optimization
     Storage migration tools
     Capacity planning utilities
 
-🎯 Target Environments
-🏠 Homelab
+# 🎯 Target Environments
+## 🏠 Homelab
 
     Small-scale deployments (1-4 nodes)
     Cost-effective optimizations
     Learning and experimentation focus
     Performance over enterprise features
 
-🏢 Small Business
+## 🏢 Small Business
 
     Medium-scale deployments (5-20 nodes)
     Reliability and uptime focus
     Automated management
     Compliance considerations
 
-🏭 Enterprise (Future)
+## 🏭 Enterprise (Future)
 
     Large-scale deployments (20+ nodes)
     High availability requirements
     Advanced monitoring and alerting
     Compliance and audit trails
 
-🔧 Hardware Compatibility
-✅ Tested Platforms
+# 🔧 Hardware Compatibility
+## ✅ Tested Platforms
 
     AMD Ryzen 5000 Series (5425U, 5825U)
     Intel 12th Gen and newer
     NVMe Storage (Various manufacturers)
     DDR4/DDR5 Memory (8GB-128GB configurations)
 
-📋 Proxmox Versions
+## 📋 Proxmox Versions
 
     Proxmox VE 9.x (Primary focus)
     Proxmox VE 8.x (Full support)
 
-🚀 Quick Start
+# 🚀 Quick Start
 1. 📥 Clone Repository
 
 git clone https://github.com/somnium78/proxmox-stuff.git
@@ -139,30 +143,30 @@ Always test scripts in non-production environments:
     Monitor system behavior for 24-48 hours
     Have rollback procedures ready
 
-⚠️ Important Warnings
-🔒 Security Considerations
+# ⚠️ Important Warnings
+## 🔒 Security Considerations
 
     Some optimizations trade security for performance
     Review all scripts before execution
     Understand the implications of each change
     Use appropriate security measures for your environment
 
-🧪 Testing Requirements
+## 🧪 Testing Requirements
 
     NEVER run scripts directly in production
     Always backup configurations before changes
     Test in isolated environments first
     Monitor system stability after changes
 
-📋 Prerequisites
+## 📋 Prerequisites
 
     Root access to Proxmox nodes
     Basic understanding of Linux system administration
     Familiarity with Proxmox concepts
     Backup and recovery procedures in place
 
-🤝 Contributing
-📝 How to Contribute
+# 🤝 Contributing
+## 📝 How to Contribute
 
     Fork the repository
     Create feature branch (git checkout -b feature/amazing-feature)
@@ -170,7 +174,7 @@ Always test scripts in non-production environments:
     Document your modifications
     Submit pull request with detailed description
 
-🎯 Contribution Guidelines
+## 🎯 Contribution Guidelines
 
     Follow existing code style and structure
     Include comprehensive documentation
@@ -178,7 +182,7 @@ Always test scripts in non-production environments:
     Consider security implications
     Update relevant README files
 
-🐛 Bug Reports
+## 🐛 Bug Reports
 
 When reporting issues, include:
 
@@ -188,8 +192,8 @@ When reporting issues, include:
     Steps to reproduce
     System logs if relevant
 
-📚 Documentation Standards
-📖 Each Script Should Include
+# 📚 Documentation Standards
+## 📖 Each Script Should Include
 
     Purpose: What the script does
     Prerequisites: System requirements
@@ -198,45 +202,45 @@ When reporting issues, include:
     Examples: Common use cases
     Troubleshooting: Common issues and solutions
 
-🌍 Language Support
+## 🌍 Language Support
 
     Primary: English documentation
     Secondary: German documentation (where applicable)
     Code Comments: English only for consistency
 
-🔄 Version Management
-📋 Versioning Scheme
+# 🔄 Version Management
+## 📋 Versioning Scheme
 
     Major.Minor.Patch (e.g., 1.2.3)
     Major: Breaking changes or major new features
     Minor: New features, backward compatible
     Patch: Bug fixes and minor improvements
 
-📅 Release Schedule
+## 📅 Release Schedule
 
     Stable releases: Monthly
     Beta releases: Bi-weekly
     Hotfixes: As needed for critical issues
 
-📞 Support and Community
-🆘 Getting Help
+# 📞 Support and Community
+## 🆘 Getting Help
 
     Check existing documentation
     Search closed issues
     Create detailed issue report
     Join community discussions
 
-💬 Community Resources
+## 💬 Community Resources
 
     GitHub Issues for bug reports
     Discussions for general questions
     Wiki for community contributions
     Examples repository for use cases
 
-📜 License
+# 📜 License
 
 This project is licensed under the GNU General Public License v3.0 - see the LICENSE file for details.
-🔓 License Summary
+# 🔓 License Summary
 
     ✅ Commercial use allowed
     ✅ Modification allowed
@@ -250,15 +254,15 @@ This project is licensed under the GNU General Public License v3.0 - see the LIC
     ⚠️ Disclose source required
     ⚠️ Same license required
 
-🙏 Acknowledgments
-👥 Contributors
+# 🙏 Acknowledgments
+## 👥 Contributors
 
     Community members who test and provide feedback
     Hardware vendors for compatibility information
     Proxmox team for excellent virtualization platform
     Open source projects that inspire these solutions
 
-🔗 Inspiration
+## 🔗 Inspiration
 
     Proxmox official documentation
     Community best practices
@@ -267,4 +271,5 @@ This project is licensed under the GNU General Public License v3.0 - see the LIC
 
 Remember: These scripts are tools to enhance your Proxmox experience. Always understand what you're running and test thoroughly! 🧠
 
+--- 
 Last updated: 2025-08-29
