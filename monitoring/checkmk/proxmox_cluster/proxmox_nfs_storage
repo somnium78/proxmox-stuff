@@ -1,0 +1,101 @@
+#!/bin/bash
+#
+# Check_MK Local Check: Proxmox NFS Storage (Node-Aware)
+# File: /usr/lib/check_mk_agent/local/proxmox_nfs_storage
+#
+# Monitors Proxmox NFS storage mounts and connectivity
+# Author: somnium78
+# Version: 1.1.0
+# Date: 2025-08-30
+#
+
+check_proxmox_nfs_storage() {
+    if ! command -v pvesm >/dev/null 2>&1; then
+        echo "2 Proxmox_NFS_Storage - CRITICAL: pvesm command not found"
+        return
+    fi
+
+    current_node=$(hostname)
+
+    # Check if NFS is configured for this node
+    nfs_for_node=0
+    if [ -f /etc/pve/storage.cfg ]; then
+        # Check if any NFS storage includes this node
+        nfs_for_node=$(grep -A10 "^nfs:" /etc/pve/storage.cfg | grep "nodes" | grep -c "$current_node")
+    fi
+
+    if [ $nfs_for_node -eq 0 ]; then
+        echo "0 Proxmox_NFS_Storage - OK: No NFS storages configured for node $current_node"
+        return
+    fi
+
+    # Check NFS storages specifically
+    nfs_status=$(pvesm status | grep nfs 2>/dev/null)
+
+    if [ -z "$nfs_status" ]; then
+        echo "2 Proxmox_NFS_Storage - CRITICAL: NFS storage configured but not found"
+        return
+    fi
+
+    # Count NFS storages
+    total_nfs=$(echo "$nfs_status" | wc -l)
+    active_nfs=$(echo "$nfs_status" | grep -c "active")
+    disabled_nfs=$(echo "$nfs_status" | grep -c "disabled")
+
+    # Check actual NFS mounts
+    mounted_nfs=0
+    if command -v mount >/dev/null 2>&1; then
+        mounted_nfs=$(mount | grep -c "type nfs")
+    fi
+
+    # Parse storage.cfg for NFS servers and test connectivity
+    nfs_servers_reachable=0
+    nfs_servers_total=0
+
+    if [ -f /etc/pve/storage.cfg ]; then
+        # Extract NFS server IPs for storages available on this node
+        while IFS= read -r line; do
+            if echo "$line" | grep -q "^nfs:"; then
+                in_nfs_section=1
+                nfs_server=""
+                node_included=0
+            elif [ "$in_nfs_section" = "1" ]; then
+                if echo "$line" | grep -q "server"; then
+                    nfs_server=$(echo "$line" | awk '{print $2}')
+                elif echo "$line" | grep -q "nodes"; then
+                    if echo "$line" | grep -q "$current_node"; then
+                        node_included=1
+                    fi
+                elif echo "$line" | grep -q "^[a-z]*:"; then
+                    # New section - process previous NFS if relevant
+                    if [ -n "$nfs_server" ] && [ "$node_included" = "1" ]; then
+                        nfs_servers_total=$((nfs_servers_total + 1))
+                        if ping -c 1 -W 2 "$nfs_server" >/dev/null 2>&1; then
+                            nfs_servers_reachable=$((nfs_servers_reachable + 1))
+                        fi
+                    fi
+                    in_nfs_section=0
+                fi
+            fi
+        done < /etc/pve/storage.cfg
+    fi
+
+    # Determine status
+    if [ $active_nfs -eq 0 ] && [ $disabled_nfs -eq 0 ]; then
+        status=2
+        state="CRITICAL"
+    elif [ $nfs_servers_total -gt 0 ] && [ $nfs_servers_reachable -lt $nfs_servers_total ]; then
+        status=2
+        state="CRITICAL"
+    elif [ $disabled_nfs -gt 0 ]; then
+        status=1
+        state="WARNING"
+    else
+        status=0
+        state="OK"
+    fi
+
+    echo "$status Proxmox_NFS_Storage total=$total_nfs;active=$active_nfs;disabled=$disabled_nfs;mounted=$mounted_nfs;servers_reachable=$nfs_servers_reachable;servers_total=$nfs_servers_total $state: $total_nfs NFS storages on $current_node ($active_nfs active, $mounted_nfs mounted, $nfs_servers_reachable/$nfs_servers_total servers reachable)"
+}
+
+check_proxmox_nfs_storage

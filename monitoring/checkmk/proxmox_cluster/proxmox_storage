@@ -1,0 +1,93 @@
+#!/bin/bash
+#
+# Check_MK Local Check: Proxmox Storage Overview (Node-Aware)
+# File: /usr/lib/check_mk_agent/local/proxmox_storage
+#
+# Monitors Proxmox storage configuration and availability for current node
+# Author: somnium78
+# Version: 1.1.0
+# Date: 2025-08-30
+#
+
+check_proxmox_storage() {
+    if ! command -v pvesm >/dev/null 2>&1; then
+        echo "2 Proxmox_Storage - CRITICAL: pvesm command not found"
+        return
+    fi
+
+    # Get current node name
+    current_node=$(hostname)
+
+    # Get storage status
+    storage_status=$(pvesm status 2>/dev/null)
+
+    if [ $? -ne 0 ]; then
+        echo "2 Proxmox_Storage - CRITICAL: Failed to query Proxmox storage"
+        return
+    fi
+
+    # Count storages by type and status (only those relevant for this node)
+    total_storages=$(echo "$storage_status" | grep -v "^Name" | wc -l)
+
+    if [ $total_storages -eq 0 ]; then
+        echo "1 Proxmox_Storage - WARNING: No storages found"
+        return
+    fi
+
+    # Count by type
+    zfs_storages=$(echo "$storage_status" | grep -c "zfspool")
+    drbd_storages=$(echo "$storage_status" | grep -c "drbd")
+    nfs_storages=$(echo "$storage_status" | grep -c "nfs")
+    pbs_storages=$(echo "$storage_status" | grep -c "pbs")
+    dir_storages=$(echo "$storage_status" | grep -c "dir")
+
+    # Count by status (available/disabled - ignore "not available on node")
+    available_storages=$(echo "$storage_status" | grep -c "active")
+    disabled_storages=$(echo "$storage_status" | grep -c "disabled")
+
+    # Only count as unavailable if it should be available on this node but isn't
+    unavailable_storages=0
+
+    # Parse storage.cfg to check which storages should be available on this node
+    expected_storages=0
+    if [ -f /etc/pve/storage.cfg ]; then
+        # Count storages that either have no node restriction or include this node
+        while IFS= read -r line; do
+            if echo "$line" | grep -q "^[a-z]*:"; then
+                storage_name=$(echo "$line" | cut -d: -f1)
+                in_section=1
+                node_restricted=0
+                node_included=0
+            elif [ "$in_section" = "1" ]; then
+                if echo "$line" | grep -q "nodes"; then
+                    node_restricted=1
+                    if echo "$line" | grep -q "$current_node"; then
+                        node_included=1
+                    fi
+                elif echo "$line" | grep -q "^[a-z]*:"; then
+                    # New section started
+                    if [ "$node_restricted" = "0" ] || [ "$node_included" = "1" ]; then
+                        expected_storages=$((expected_storages + 1))
+                    fi
+                    in_section=0
+                fi
+            fi
+        done < /etc/pve/storage.cfg
+    fi
+
+    # Determine status - be more lenient about node-specific storages
+    if [ $available_storages -eq 0 ] && [ $expected_storages -gt 0 ]; then
+        status=2
+        state="CRITICAL"
+    elif [ $disabled_storages -gt $((total_storages / 2)) ]; then
+        status=1
+        state="WARNING"
+    else
+        status=0
+        state="OK"
+    fi
+
+    echo "$status Proxmox_Storage total=$total_storages;available=$available_storages;disabled=$disabled_storages;zfs=$zfs_storages;drbd=$drbd_storages;nfs=$nfs_storages;pbs=$pbs_storages;dir=$dir_storages $state: $total_storages storages on $current_node ($available_storages active, $disabled_storages disabled)"
+}
+
+check_proxmox_storage

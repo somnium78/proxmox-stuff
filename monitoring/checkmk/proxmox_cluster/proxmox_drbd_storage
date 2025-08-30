@@ -1,0 +1,72 @@
+#!/bin/bash
+#
+# Check_MK Local Check: Proxmox DRBD Storage (Node-Aware)
+# File: /usr/lib/check_mk_agent/local/proxmox_drbd_storage
+#
+# Monitors Proxmox DRBD storage health and connectivity
+# Author: somnium78
+# Version: 1.1.0
+# Date: 2025-08-30
+#
+
+check_proxmox_drbd_storage() {
+    if ! command -v pvesm >/dev/null 2>&1; then
+        echo "2 Proxmox_DRBD_Storage - CRITICAL: pvesm command not found"
+        return
+    fi
+
+    current_node=$(hostname)
+
+    # Check if DRBD is configured for this node
+    drbd_for_node=0
+    if [ -f /etc/pve/storage.cfg ]; then
+        # Check if any DRBD storage includes this node
+        drbd_for_node=$(grep -A10 "^drbd:" /etc/pve/storage.cfg | grep "nodes" | grep -c "$current_node")
+    fi
+
+    if [ $drbd_for_node -eq 0 ]; then
+        echo "0 Proxmox_DRBD_Storage - OK: No DRBD storages configured for node $current_node"
+        return
+    fi
+
+    # Check DRBD storages specifically
+    drbd_status=$(pvesm status | grep drbd 2>/dev/null)
+
+    if [ -z "$drbd_status" ]; then
+        echo "2 Proxmox_DRBD_Storage - CRITICAL: DRBD storage configured but not found"
+        return
+    fi
+
+    # Count DRBD storages
+    total_drbd=$(echo "$drbd_status" | wc -l)
+    active_drbd=$(echo "$drbd_status" | grep -c "active")
+    disabled_drbd=$(echo "$drbd_status" | grep -c "disabled")
+
+    # Check LINSTOR controller connectivity for DRBD storages
+    controller_reachable=0
+    if command -v linstor >/dev/null 2>&1; then
+        linstor node list >/dev/null 2>&1
+        if [ $? -eq 0 ]; then
+            controller_reachable=1
+        fi
+    fi
+
+    # Determine status
+    if [ $active_drbd -eq 0 ] && [ $disabled_drbd -eq 0 ]; then
+        status=2
+        state="CRITICAL"
+    elif [ $controller_reachable -eq 0 ]; then
+        status=1
+        state="WARNING"
+    elif [ $disabled_drbd -gt 0 ]; then
+        status=1
+        state="WARNING"
+    else
+        status=0
+        state="OK"
+    fi
+
+    echo "$status Proxmox_DRBD_Storage total=$total_drbd;active=$active_drbd;disabled=$disabled_drbd;controller_reachable=$controller_reachable $state: $total_drbd DRBD storages on $current_node ($active_drbd active, controller reachable: $controller_reachable)"
+}
+
+check_proxmox_drbd_storage

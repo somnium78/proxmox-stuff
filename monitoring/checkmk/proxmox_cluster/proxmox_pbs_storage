@@ -1,0 +1,84 @@
+#!/bin/bash
+#
+# Check_MK Local Check: Proxmox PBS Storage
+# File: /usr/lib/check_mk_agent/local/proxmox_pbs_storage
+#
+# Monitors Proxmox Backup Server storage connectivity
+# Author: somnium78
+# Version: 1.0.0
+# Date: 2025-08-30
+#
+
+check_proxmox_pbs_storage() {
+    if ! command -v pvesm >/dev/null 2>&1; then
+        echo "2 Proxmox_PBS_Storage - CRITICAL: pvesm command not found"
+        return
+    fi
+
+    # Check PBS storages specifically
+    pbs_status=$(pvesm status | grep pbs 2>/dev/null)
+
+    if [ -z "$pbs_status" ]; then
+        echo "0 Proxmox_PBS_Storage - OK: No PBS storages configured"
+        return
+    fi
+
+    # Count PBS storages
+    total_pbs=$(echo "$pbs_status" | wc -l)
+    active_pbs=$(echo "$pbs_status" | grep -c "active")
+    inactive_pbs=$((total_pbs - active_pbs))
+
+    # Parse storage.cfg for PBS servers and test connectivity
+    pbs_servers_reachable=0
+    pbs_servers_total=0
+    pbs_auth_issues=0
+
+    if [ -f /etc/pve/storage.cfg ]; then
+        # Extract PBS server info
+        while IFS= read -r line; do
+            if echo "$line" | grep -q "^pbs:"; then
+                pbs_name=$(echo "$line" | cut -d: -f2 | tr -d ' ')
+            elif echo "$line" | grep -q "server"; then
+                pbs_server=$(echo "$line" | awk '{print $2}')
+                if [ -n "$pbs_server" ]; then
+                    pbs_servers_total=$((pbs_servers_total + 1))
+
+                    # Test basic connectivity (ping)
+                    if ping -c 1 -W 2 "$pbs_server" >/dev/null 2>&1; then
+                        pbs_servers_reachable=$((pbs_servers_reachable + 1))
+
+                        # Test PBS API connectivity (if proxmox-backup-client available)
+                        if command -v proxmox-backup-client >/dev/null 2>&1; then
+                            # This would need proper authentication setup
+                            # For now, we just check if the server responds on port 8007
+                            if timeout 3 bash -c "</dev/tcp/$pbs_server/8007" 2>/dev/null; then
+                                : # PBS API port reachable
+                            else
+                                pbs_auth_issues=$((pbs_auth_issues + 1))
+                            fi
+                        fi
+                    fi
+                fi
+            fi
+        done < /etc/pve/storage.cfg
+    fi
+
+    # Determine status
+    if [ $inactive_pbs -gt 0 ]; then
+        status=2
+        state="CRITICAL"
+    elif [ $pbs_servers_total -gt 0 ] && [ $pbs_servers_reachable -lt $pbs_servers_total ]; then
+        status=2
+        state="CRITICAL"
+    elif [ $pbs_auth_issues -gt 0 ]; then
+        status=1
+        state="WARNING"
+    else
+        status=0
+        state="OK"
+    fi
+
+    echo "$status Proxmox_PBS_Storage total=$total_pbs;active=$active_pbs;inactive=$inactive_pbs;servers_reachable=$pbs_servers_reachable;servers_total=$pbs_servers_total;auth_issues=$pbs_auth_issues $state: $total_pbs PBS storages ($active_pbs active, $pbs_servers_reachable/$pbs_servers_total servers reachable)"
+}
+
+check_proxmox_pbs_storage

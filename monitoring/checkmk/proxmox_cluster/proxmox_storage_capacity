@@ -1,0 +1,89 @@
+#!/bin/bash
+#
+# Check_MK Local Check: Proxmox Storage Capacity
+# File: /usr/lib/check_mk_agent/local/proxmox_storage_capacity
+#
+# Monitors Proxmox storage capacity and usage
+# Author: somnium78
+# Version: 1.0.0
+# Date: 2025-08-30
+#
+
+check_proxmox_storage_capacity() {
+    if ! command -v pvesm >/dev/null 2>&1; then
+        echo "2 Proxmox_Storage_Capacity - CRITICAL: pvesm command not found"
+        return
+    fi
+
+    # Get detailed storage status with capacity info
+    storage_status=$(pvesm status --content images,rootdir 2>/dev/null)
+
+    if [ $? -ne 0 ]; then
+        echo "2 Proxmox_Storage_Capacity - CRITICAL: Failed to query storage capacity"
+        return
+    fi
+
+    # Parse capacity information
+    total_storages=0
+    warning_storages=0
+    critical_storages=0
+    total_capacity_gb=0
+    total_used_gb=0
+
+    # Skip header line and process each storage
+    echo "$storage_status" | tail -n +2 | while IFS= read -r line; do
+        if [ -n "$line" ]; then
+            # Extract capacity info (format varies, handle different cases)
+            used=$(echo "$line" | awk '{print $4}')
+            total=$(echo "$line" | awk '{print $5}')
+
+            if [ -n "$used" ] && [ -n "$total" ] && [ "$used" != "-" ] && [ "$total" != "-" ]; then
+                # Convert to GB (handle different units)
+                used_gb=$(echo "$used" | sed 's/G//g; s/T/*1024/g; s/M\/1024/g' | bc 2>/dev/null || echo 0)
+                total_gb=$(echo "$total" | sed 's/G//g; s/T/*1024/g; s/M\/1024/g' | bc 2>/dev/null || echo 0)
+
+                if [ "$total_gb" -gt 0 ]; then
+                    usage_percent=$((used_gb * 100 / total_gb))
+
+                    total_storages=$((total_storages + 1))
+                    total_capacity_gb=$((total_capacity_gb + total_gb))
+                    total_used_gb=$((total_used_gb + used_gb))
+
+                    if [ $usage_percent -gt 90 ]; then
+                        critical_storages=$((critical_storages + 1))
+                    elif [ $usage_percent -gt 80 ]; then
+                        warning_storages=$((warning_storages + 1))
+                    fi
+                fi
+            fi
+        fi
+    done > /tmp/storage_capacity_$$
+
+    # Read results from temp file
+    if [ -f /tmp/storage_capacity_$$ ]; then
+        . /tmp/storage_capacity_$$
+        rm -f /tmp/storage_capacity_$$
+    fi
+
+    # Calculate overall usage
+    overall_usage=0
+    if [ $total_capacity_gb -gt 0 ]; then
+        overall_usage=$((total_used_gb * 100 / total_capacity_gb))
+    fi
+
+    # Determine status
+    if [ $critical_storages -gt 0 ]; then
+        status=2
+        state="CRITICAL"
+    elif [ $warning_storages -gt 0 ]; then
+        status=1
+        state="WARNING"
+    else
+        status=0
+        state="OK"
+    fi
+
+    echo "$status Proxmox_Storage_Capacity total=$total_storages;warning=$warning_storages;critical=$critical_storages;total_gb=$total_capacity_gb;used_gb=$total_used_gb;usage_percent=$overall_usage $state: $total_storages storages monitored ($warning_storages >80%, $critical_storages >90%, overall: ${overall_usage}%)"
+}
+
+check_proxmox_storage_capacity
