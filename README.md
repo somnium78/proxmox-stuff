@@ -33,10 +33,10 @@ Automated deployment and management scripts
     Cluster node provisioning
     Configuration synchronization across nodes
 
-## 📊 /monitoring (Coming Soon)
+## 📊 /monitoring
 
 Monitoring and alerting solutions
-
+    Check_mk plugins
     Custom Prometheus exporters
     Grafana dashboards
     Temperature and performance monitoring
