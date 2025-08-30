@@ -23,7 +23,7 @@ This monitoring suite provides **20 specialized checks** across three main categ
 - **linstor_storage_pools**: Monitor LINSTOR storage pool capacity and health
 - **linstor_volumes**: Monitor LINSTOR volume status and usage
 
-### 🖥️ Proxmox Cluster Monitoring (7 checks)
+### 🖥️ Proxmox Cluster Monitoring (10 checks)
 - **corosync_status**: Monitor Corosync cluster communication
 - **proxmox_cluster**: Monitor Proxmox cluster status and node availability
 - **proxmox_vm_status**: Monitor VM status and resource allocation
