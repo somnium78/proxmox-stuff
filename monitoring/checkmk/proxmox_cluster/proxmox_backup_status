@@ -1,20 +1,20 @@
 #!/bin/bash
 #
-# Check_MK Local Check: Proxmox Backup Status
+# Check_MK Local Check: Proxmox Backup Status (PBS)
 # File: /usr/lib/check_mk_agent/local/proxmox_backup_status
 #
-# Monitors Proxmox backup job status
+# Monitors Proxmox Backup Server job status
 # Author: somnium78
-# Version: 1.0.0
+# Version: 1.1.0
 # Date: 2025-08-30
 #
 
 check_proxmox_backup_status() {
-    # Check backup log directory
-    backup_log_dir="/var/log/pve/tasks"
+    # Check PBS backup log directory
+    backup_log_dir="/var/log/proxmox-backup/tasks"
 
     if [ ! -d "$backup_log_dir" ]; then
-        echo "1 Proxmox_Backup_Status - WARNING: Backup log directory not found"
+        echo "1 Proxmox_Backup_Status - WARNING: PBS backup log directory not found"
         return
     fi
 
@@ -35,10 +35,10 @@ check_proxmox_backup_status() {
         if [ -f "$backup_file" ]; then
             total_backups=$((total_backups + 1))
 
-            # Check if backup was successful
-            if grep -q "backup finished successfully" "$backup_file" 2>/dev/null; then
+            # Check PBS backup status patterns
+            if grep -q "backup finished successfully\|TASK OK" "$backup_file" 2>/dev/null; then
                 successful_backups=$((successful_backups + 1))
-            elif grep -q "backup failed" "$backup_file" 2>/dev/null; then
+            elif grep -q "backup failed\|TASK ERROR\|TASK WARNINGS" "$backup_file" 2>/dev/null; then
                 failed_backups=$((failed_backups + 1))
             fi
         fi
@@ -56,7 +56,7 @@ check_proxmox_backup_status() {
         state="OK"
     fi
 
-    echo "$status Proxmox_Backup_Status recent_backups=$total_backups;successful=$successful_backups;failed=$failed_backups $state: $total_backups recent backups ($successful_backups successful, $failed_backups failed)"
+    echo "$status Proxmox_Backup_Status recent_backups=$total_backups;successful=$successful_backups;failed=$failed_backups $state: $total_backups recent PBS backups ($successful_backups successful, $failed_backups failed)"
 }
 
 check_proxmox_backup_status
