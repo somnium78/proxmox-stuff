@@ -1,0 +1,71 @@
+#!/bin/bash
+#
+# Check_MK Local Check: ZFS Capacity
+# File: /usr/lib/check_mk_agent/local/zfs_capacity
+#
+# Monitors ZFS filesystem capacity and usage
+# Author: somnium78
+# Version: 1.0.0
+# Date: 2025-08-30
+#
+
+check_zfs_capacity() {
+    if ! command -v zfs >/dev/null 2>&1; then
+        echo "2 ZFS_Capacity - CRITICAL: zfs command not found"
+        return
+    fi
+
+    # Get filesystem usage
+    zfs_list=$(zfs list -H -o name,used,available,mountpoint -t filesystem 2>/dev/null)
+
+    if [ $? -ne 0 ]; then
+        echo "2 ZFS_Capacity - CRITICAL: Failed to query ZFS filesystems"
+        return
+    fi
+
+    total_filesystems=$(echo "$zfs_list" | wc -l)
+
+    if [ $total_filesystems -eq 0 ]; then
+        echo "1 ZFS_Capacity - WARNING: No ZFS filesystems found"
+        return
+    fi
+
+    # Calculate capacity warnings (>80% = warning, >90% = critical)
+    critical_fs=0
+    warning_fs=0
+
+    while IFS=$'\t' read -r name used available mountpoint; do
+        if [ -n "$used" ] && [ -n "$available" ]; then
+            # Convert to bytes (handle K, M, G, T suffixes)
+            used_bytes=$(echo "$used" | sed 's/K/*1024/g; s/M/*1024*1024/g; s/G/*1024*1024*1024/g; s/T/*1024*1024*1024*1024/g' | bc 2>/dev/null || echo 0)
+            avail_bytes=$(echo "$available" | sed 's/K/*1024/g; s/M/*1024*1024/g; s/G/*1024*1024*1024/g; s/T/*1024*1024*1024*1024/g' | bc 2>/dev/null || echo 0)
+
+            if [ $avail_bytes -gt 0 ]; then
+                total_bytes=$((used_bytes + avail_bytes))
+                usage_percent=$((used_bytes * 100 / total_bytes))
+
+                if [ $usage_percent -gt 90 ]; then
+                    critical_fs=$((critical_fs + 1))
+                elif [ $usage_percent -gt 80 ]; then
+                    warning_fs=$((warning_fs + 1))
+                fi
+            fi
+        fi
+    done <<< "$zfs_list"
+
+    # Determine status
+    if [ $critical_fs -gt 0 ]; then
+        status=2
+        state="CRITICAL"
+    elif [ $warning_fs -gt 0 ]; then
+        status=1
+        state="WARNING"
+    else
+        status=0
+        state="OK"
+    fi
+
+    echo "$status ZFS_Capacity total=$total_filesystems;warning=$warning_fs;critical=$critical_fs $state: $total_filesystems filesystems ($warning_fs >80%, $critical_fs >90%)"
+}
+
+check_zfs_capacity
