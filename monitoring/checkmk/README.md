@@ -28,13 +28,17 @@ This monitoring suite provides **20 specialized checks** across three main categ
 - **proxmox_cluster**: Monitor Proxmox cluster status and node availability
 - **proxmox_vm_status**: Monitor VM status and resource allocation
 - **proxmox_ct_status**: Monitor LXC container status
-- **proxmox_backup_status**: Monitor backup job status and success rates
 - **proxmox_node_resources**: Monitor node CPU and memory usage
 - **proxmox_storage**: Monitor Proxmox storage backends
 - **proxmox_storage_capacity**: Monitor storage capacity across all backends
 - **proxmox_drbd_storage**: Monitor DRBD storage replication
 - **proxmox_nfs_storage**: Monitor NFS storage mounts
 - **proxmox_pbs_storage**: Monitor Proxmox Backup Server integration
+
+### 💾 Proxmox Backup Server Monitoring (1 check)
+
+- **proxmox_backup_status**: Monitor PBS backup job status and success rates (PBS server only)
+
 
 ## 🚀 Quick Installation
 
@@ -73,8 +77,9 @@ wget -O /usr/lib/check_mk_agent/local/proxmox_drbd_storage https://raw.githubuse
 wget -O /usr/lib/check_mk_agent/local/proxmox_nfs_storage https://raw.githubusercontent.com/somnium78/proxmox-stuff/main/monitoring/checkmk/proxmox_cluster/proxmox_nfs_storage
 wget -O /usr/lib/check_mk_agent/local/proxmox_pbs_storage https://raw.githubusercontent.com/somnium78/proxmox-stuff/main/monitoring/checkmk/proxmox_cluster/proxmox_pbs_storage
 
-# Install Proxmox Backup Monitoring
-wget -O /usr/lib/check_mk_agent/local/proxmox_backup_status https://raw.githubusercontent.com/somnium78/proxmox-stuff/main/monitoring/checkmk/proxmox_cluster/proxmox_backup_status
+
+# Install Proxmox Backup Server Monitoring (PBS server only!)
+wget -O /usr/lib/check_mk_agent/local/proxmox_backup_status https://raw.githubusercontent.com/somnium78/proxmox-stuff/main/monitoring/checkmk/backup/proxmox_backup_status
 
 # Set executable permissions
 chmod +x /usr/lib/check_mk_agent/local/*
