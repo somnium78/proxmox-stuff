@@ -1,0 +1,73 @@
+#!/bin/bash
+#
+# Check_MK Local Check: LINSTOR Controller
+# File: /usr/lib/check_mk_agent/local/linstor_controller
+#
+# Monitors LINSTOR controller health and version
+# Uses JSON API for reliable data parsing
+#
+# Author: somnium78
+# Version: 1.0.0
+# Date: 2025-08-30
+#
+
+check_linstor_controller() {
+    if ! command -v linstor >/dev/null 2>&1; then
+        echo "2 LINSTOR_Controller - CRITICAL: linstor command not found"
+        return
+    fi
+
+    # Test controller connectivity
+    controller_info=$(linstor -m controller version 2>/dev/null)
+
+    if [ $? -ne 0 ]; then
+        echo "2 LINSTOR_Controller - CRITICAL: Cannot connect to LINSTOR controller"
+        return
+    fi
+
+    # Get controller version
+    controller_version=$(echo "$controller_info" | grep -o '"controller_version": "[^"]*"' | cut -d'"' -f4)
+
+    # Get satellite version (for version consistency check)
+    satellite_version=$(echo "$controller_info" | grep -o '"satellite_version": "[^"]*"' | cut -d'"' -f4)
+
+    # Check if versions match
+    version_mismatch=0
+    if [ "$controller_version" != "$satellite_version" ] && [ -n "$satellite_version" ]; then
+        version_mismatch=1
+    fi
+
+    # Get controller properties/status
+    controller_props=$(linstor -m controller list-properties 2>/dev/null)
+    controller_responsive=1
+
+    if [ $? -ne 0 ]; then
+        controller_responsive=0
+    fi
+
+    # Check database connectivity (if controller responds)
+    db_healthy=1
+    if [ $controller_responsive -eq 1 ]; then
+        # Try to list nodes as a database connectivity test
+        linstor -m node list >/dev/null 2>&1
+        if [ $? -ne 0 ]; then
+            db_healthy=0
+        fi
+    fi
+
+    # Determine status
+    if [ $controller_responsive -eq 0 ] || [ $db_healthy -eq 0 ]; then
+        status=2
+        state="CRITICAL"
+    elif [ $version_mismatch -eq 1 ]; then
+        status=1
+        state="WARNING"
+    else
+        status=0
+        state="OK"
+    fi
+
+    echo "$status LINSTOR_Controller responsive=$controller_responsive;db_healthy=$db_healthy;version_mismatch=$version_mismatch $state: Controller $controller_version (DB: $db_healthy, Version match: $((1-version_mismatch)))"
+}
+
+check_linstor_controller

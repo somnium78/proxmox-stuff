@@ -1,0 +1,57 @@
+#!/bin/bash
+#
+# Check_MK Local Check: LINSTOR Snapshots (Fixed)
+# File: /usr/lib/check_mk_agent/local/linstor_snapshots
+#
+# Monitors LINSTOR snapshot health and count
+# Uses JSON API for reliable data parsing
+#
+# Author: somnium78
+# Version: 1.0.1
+# Date: 2025-08-30
+#
+
+check_linstor_snapshots() {
+    if ! command -v linstor >/dev/null 2>&1; then
+        echo "2 LINSTOR_Snapshots - CRITICAL: linstor command not found"
+        return
+    fi
+
+    snapshots_json=$(linstor -m snapshot list 2>/dev/null)
+
+    if [ $? -ne 0 ]; then
+        echo "2 LINSTOR_Snapshots - CRITICAL: Failed to query LINSTOR snapshots"
+        return
+    fi
+
+    # Count snapshots by counting "snapshot_name" fields
+    total_snapshots=$(echo "$snapshots_json" | grep -c '"snapshot_name"')
+
+    # Count snapshots by state (if available)
+    successful_snapshots=$(echo "$snapshots_json" | grep -c '"successful": true')
+    failed_snapshots=$(echo "$snapshots_json" | grep -c '"successful": false')
+
+    # Count snapshots with flags
+    in_backup_snapshots=$(echo "$snapshots_json" | grep -c '"IN_BACKUP"')
+    in_use_snapshots=$(echo "$snapshots_json" | grep -c '"IN_USE"')
+
+    # Determine status - FIXED LOGIC
+    if [ $failed_snapshots -gt 0 ]; then
+        status=2
+        state="CRITICAL"
+        message="$total_snapshots snapshots ($successful_snapshots successful, $failed_snapshots failed, $in_backup_snapshots in backup)"
+    elif [ $total_snapshots -eq 0 ]; then
+        # 0 snapshots is OK, not a warning
+        status=0
+        state="OK"
+        message="No snapshots configured (this is normal)"
+    else
+        status=0
+        state="OK"
+        message="$total_snapshots snapshots ($successful_snapshots successful, $failed_snapshots failed, $in_backup_snapshots in backup)"
+    fi
+
+    echo "$status LINSTOR_Snapshots total=$total_snapshots;successful=$successful_snapshots;failed=$failed_snapshots;in_backup=$in_backup_snapshots $state: $message"
+}
+
+check_linstor_snapshots
