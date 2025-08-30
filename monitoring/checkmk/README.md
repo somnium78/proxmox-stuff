@@ -66,13 +66,15 @@ wget -O /usr/lib/check_mk_agent/local/corosync_status https://raw.githubusercont
 wget -O /usr/lib/check_mk_agent/local/proxmox_cluster https://raw.githubusercontent.com/somnium78/proxmox-stuff/main/monitoring/checkmk/proxmox_cluster/proxmox_cluster
 wget -O /usr/lib/check_mk_agent/local/proxmox_vm_status https://raw.githubusercontent.com/somnium78/proxmox-stuff/main/monitoring/checkmk/proxmox_cluster/proxmox_vm_status
 wget -O /usr/lib/check_mk_agent/local/proxmox_ct_status https://raw.githubusercontent.com/somnium78/proxmox-stuff/main/monitoring/checkmk/proxmox_cluster/proxmox_ct_status
-wget -O /usr/lib/check_mk_agent/local/proxmox_backup_status https://raw.githubusercontent.com/somnium78/proxmox-stuff/main/monitoring/checkmk/proxmox_cluster/proxmox_backup_status
 wget -O /usr/lib/check_mk_agent/local/proxmox_node_resources https://raw.githubusercontent.com/somnium78/proxmox-stuff/main/monitoring/checkmk/proxmox_cluster/proxmox_node_resources
 wget -O /usr/lib/check_mk_agent/local/proxmox_storage https://raw.githubusercontent.com/somnium78/proxmox-stuff/main/monitoring/checkmk/proxmox_cluster/proxmox_storage
 wget -O /usr/lib/check_mk_agent/local/proxmox_storage_capacity https://raw.githubusercontent.com/somnium78/proxmox-stuff/main/monitoring/checkmk/proxmox_cluster/proxmox_storage_capacity
 wget -O /usr/lib/check_mk_agent/local/proxmox_drbd_storage https://raw.githubusercontent.com/somnium78/proxmox-stuff/main/monitoring/checkmk/proxmox_cluster/proxmox_drbd_storage
 wget -O /usr/lib/check_mk_agent/local/proxmox_nfs_storage https://raw.githubusercontent.com/somnium78/proxmox-stuff/main/monitoring/checkmk/proxmox_cluster/proxmox_nfs_storage
 wget -O /usr/lib/check_mk_agent/local/proxmox_pbs_storage https://raw.githubusercontent.com/somnium78/proxmox-stuff/main/monitoring/checkmk/proxmox_cluster/proxmox_pbs_storage
+
+# Install Proxmox Backup Monitoring
+wget -O /usr/lib/check_mk_agent/local/proxmox_backup_status https://raw.githubusercontent.com/somnium78/proxmox-stuff/main/monitoring/checkmk/proxmox_cluster/proxmox_backup_status
 
 # Set executable permissions
 chmod +x /usr/lib/check_mk_agent/local/*
