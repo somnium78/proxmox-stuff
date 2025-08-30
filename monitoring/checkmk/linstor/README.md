@@ -28,33 +28,24 @@ Prerequisites
 sudo mkdir -p /usr/lib/check_mk_agent/local
 
 # Install core LINSTOR monitoring checks
-sudo wget -O /usr/lib/check_mk_agent/local/linstor_resources \\
-  https://raw.githubusercontent.com/somnium78/proxmox-stuff/main/monitoring/checkmk/linstor/linstor_resources
+sudo wget -O /usr/lib/check_mk_agent/local/linstor_resources https://raw.githubusercontent.com/somnium78/proxmox-stuff/main/monitoring/checkmk/linstor/linstor_resources
 
-sudo wget -O /usr/lib/check_mk_agent/local/linstor_nodes \\
-  https://raw.githubusercontent.com/somnium78/proxmox-stuff/main/monitoring/checkmk/linstor/linstor_nodes
+sudo wget -O /usr/lib/check_mk_agent/local/linstor_nodes https://raw.githubusercontent.com/somnium78/proxmox-stuff/main/monitoring/checkmk/linstor/linstor_nodes
 
-sudo wget -O /usr/lib/check_mk_agent/local/linstor_resource_groups \\
-  https://raw.githubusercontent.com/somnium78/proxmox-stuff/main/monitoring/checkmk/linstor/linstor_resource_groups
+sudo wget -O /usr/lib/check_mk_agent/local/linstor_resource_groups https://raw.githubusercontent.com/somnium78/proxmox-stuff/main/monitoring/checkmk/linstor/linstor_resource_groups
 
-sudo wget -O /usr/lib/check_mk_agent/local/linstor_storage_pools \\
-  https://raw.githubusercontent.com/somnium78/proxmox-stuff/main/monitoring/checkmk/linstor/linstor_storage_pools
+sudo wget -O /usr/lib/check_mk_agent/local/linstor_storage_pools https://raw.githubusercontent.com/somnium78/proxmox-stuff/main/monitoring/checkmk/linstor/linstor_storage_pools
 
 # Install extended monitoring checks
-sudo wget -O /usr/lib/check_mk_agent/local/linstor_snapshots \\
-  https://raw.githubusercontent.com/somnium78/proxmox-stuff/main/monitoring/checkmk/linstor/linstor_snapshots
+sudo wget -O /usr/lib/check_mk_agent/local/linstor_snapshots https://raw.githubusercontent.com/somnium78/proxmox-stuff/main/monitoring/checkmk/linstor/linstor_snapshots
 
-sudo wget -O /usr/lib/check_mk_agent/local/linstor_volumes \\
-  https://raw.githubusercontent.com/somnium78/proxmox-stuff/main/monitoring/checkmk/linstor/linstor_volumes
+sudo wget -O /usr/lib/check_mk_agent/local/linstor_volumes https://raw.githubusercontent.com/somnium78/proxmox-stuff/main/monitoring/checkmk/linstor/linstor_volumes
 
-sudo wget -O /usr/lib/check_mk_agent/local/linstor_controller \\
-  https://raw.githubusercontent.com/somnium78/proxmox-stuff/main/monitoring/checkmk/linstor/linstor_controller
+sudo wget -O /usr/lib/check_mk_agent/local/linstor_controller https://raw.githubusercontent.com/somnium78/proxmox-stuff/main/monitoring/checkmk/linstor/linstor_controller
 
-sudo wget -O /usr/lib/check_mk_agent/local/linstor_network \\
-  https://raw.githubusercontent.com/somnium78/proxmox-stuff/main/monitoring/checkmk/linstor/linstor_network
+sudo wget -O /usr/lib/check_mk_agent/local/linstor_network https://raw.githubusercontent.com/somnium78/proxmox-stuff/main/monitoring/checkmk/linstor/linstor_network
 
-sudo wget -O /usr/lib/check_mk_agent/local/linstor_performance \\
-  https://raw.githubusercontent.com/somnium78/proxmox-stuff/main/monitoring/checkmk/linstor/linstor_performance
+sudo wget -O /usr/lib/check_mk_agent/local/linstor_performance https://raw.githubusercontent.com/somnium78/proxmox-stuff/main/monitoring/checkmk/linstor/linstor_performance
 
 # Make executable
 sudo chmod +x /usr/lib/check_mk_agent/local/linstor_*
