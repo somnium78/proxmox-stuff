@@ -1,0 +1,62 @@
+#!/bin/bash
+#
+# Check_MK Local Check: Proxmox Backup Status
+# File: /usr/lib/check_mk_agent/local/proxmox_backup_status
+#
+# Monitors Proxmox backup job status
+# Author: somnium78
+# Version: 1.0.0
+# Date: 2025-08-30
+#
+
+check_proxmox_backup_status() {
+    # Check backup log directory
+    backup_log_dir="/var/log/pve/tasks"
+
+    if [ ! -d "$backup_log_dir" ]; then
+        echo "1 Proxmox_Backup_Status - WARNING: Backup log directory not found"
+        return
+    fi
+
+    # Get recent backup tasks (last 24 hours)
+    recent_backups=$(find "$backup_log_dir" -name "*backup*" -mtime -1 2>/dev/null)
+
+    if [ -z "$recent_backups" ]; then
+        echo "1 Proxmox_Backup_Status recent_backups=0;successful=0;failed=0 WARNING: No recent backup tasks found"
+        return
+    fi
+
+    # Count backup results
+    total_backups=0
+    successful_backups=0
+    failed_backups=0
+
+    for backup_file in $recent_backups; do
+        if [ -f "$backup_file" ]; then
+            total_backups=$((total_backups + 1))
+
+            # Check if backup was successful
+            if grep -q "backup finished successfully" "$backup_file" 2>/dev/null; then
+                successful_backups=$((successful_backups + 1))
+            elif grep -q "backup failed" "$backup_file" 2>/dev/null; then
+                failed_backups=$((failed_backups + 1))
+            fi
+        fi
+    done
+
+    # Determine status
+    if [ $failed_backups -gt 0 ]; then
+        status=2
+        state="CRITICAL"
+    elif [ $total_backups -eq 0 ]; then
+        status=1
+        state="WARNING"
+    else
+        status=0
+        state="OK"
+    fi
+
+    echo "$status Proxmox_Backup_Status recent_backups=$total_backups;successful=$successful_backups;failed=$failed_backups $state: $total_backups recent backups ($successful_backups successful, $failed_backups failed)"
+}
+
+check_proxmox_backup_status

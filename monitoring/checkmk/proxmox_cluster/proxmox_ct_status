@@ -1,0 +1,44 @@
+#!/bin/bash
+#
+# Check_MK Local Check: Proxmox Container Status
+# File: /usr/lib/check_mk_agent/local/proxmox_ct_status
+#
+# Monitors Proxmox LXC container status
+# Author: somnium78
+# Version: 1.0.0
+# Date: 2025-08-30
+#
+
+check_proxmox_ct_status() {
+    if ! command -v pct >/dev/null 2>&1; then
+        echo "2 Proxmox_CT_Status - CRITICAL: pct command not found"
+        return
+    fi
+
+    # Get container list
+    ct_list=$(pct list 2>/dev/null)
+
+    if [ $? -ne 0 ]; then
+        echo "2 Proxmox_CT_Status - CRITICAL: Failed to get container list"
+        return
+    fi
+
+    # Count containers by status
+    total_cts=$(echo "$ct_list" | grep -c "^[[:space:]]*[0-9]")
+    running_cts=$(echo "$ct_list" | grep -c "running")
+    stopped_cts=$(echo "$ct_list" | grep -c "stopped")
+
+    # Calculate totals
+    if [ $total_cts -eq 0 ]; then
+        echo "0 Proxmox_CT_Status total=0;running=0;stopped=0 OK: No containers configured"
+        return
+    fi
+
+    # Determine status - all OK for containers
+    status=0
+    state="OK"
+
+    echo "$status Proxmox_CT_Status total=$total_cts;running=$running_cts;stopped=$stopped_cts $state: $total_cts containers ($running_cts running, $stopped_cts stopped)"
+}
+
+check_proxmox_ct_status

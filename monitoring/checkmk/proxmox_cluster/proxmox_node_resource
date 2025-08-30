@@ -1,0 +1,82 @@
+#!/bin/bash
+#
+# Check_MK Local Check: Proxmox Node Resources
+# File: /usr/lib/check_mk_agent/local/proxmox_node_resources
+#
+# Monitors Proxmox node resource usage
+# Author: somnium78
+# Version: 1.0.0
+# Date: 2025-08-30
+#
+
+check_proxmox_node_resources() {
+    # Get node status via pvesh if available
+    if command -v pvesh >/dev/null 2>&1; then
+        node_status=$(pvesh get /nodes/$(hostname)/status --output-format json 2>/dev/null)
+
+        if [ $? -eq 0 ] && [ -n "$node_status" ]; then
+            # Extract values using basic text processing
+            cpu_usage=$(echo "$node_status" | grep -o '"cpu":[0-9.]*' | cut -d: -f2 | head -1)
+            memory_used=$(echo "$node_status" | grep -o '"memory":[0-9]*' | cut -d: -f2 | head -1)
+            memory_total=$(echo "$node_status" | grep -o '"maxmem":[0-9]*' | cut -d: -f2 | head -1)
+
+            # Convert to percentages and GB
+            if [ -n "$cpu_usage" ] && [ -n "$memory_used" ] && [ -n "$memory_total" ]; then
+                cpu_percent=$(echo "$cpu_usage * 100" | bc 2>/dev/null | cut -d. -f1 || echo 0)
+                memory_percent=$(echo "$memory_used * 100 / $memory_total" | bc 2>/dev/null || echo 0)
+                memory_used_gb=$(echo "$memory_used / 1073741824" | bc 2>/dev/null || echo 0)
+                memory_total_gb=$(echo "$memory_total / 1073741824" | bc 2>/dev/null || echo 0)
+
+                # Determine status
+                if [ "$cpu_percent" -gt 90 ] || [ "$memory_percent" -gt 90 ]; then
+                    status=2
+                    state="CRITICAL"
+                elif [ "$cpu_percent" -gt 80 ] || [ "$memory_percent" -gt 80 ]; then
+                    status=1
+                    state="WARNING"
+                else
+                    status=0
+                    state="OK"
+                fi
+
+                echo "$status Proxmox_Node_Resources cpu_percent=$cpu_percent;memory_percent=$memory_percent;memory_used_gb=$memory_used_gb;memory_total_gb=$memory_total_gb $state: CPU ${cpu_percent}%, Memory ${memory_percent}% (${memory_used_gb}GB/${memory_total_gb}GB)"
+                return
+            fi
+        fi
+    fi
+
+    # Fallback to system commands
+    cpu_usage=$(top -bn1 | grep "Cpu(s)" | awk '{print $2}' | sed 's/%us,//')
+    memory_info=$(free -m | grep "^Mem:")
+    memory_used=$(echo "$memory_info" | awk '{print $3}')
+    memory_total=$(echo "$memory_info" | awk '{print $2}')
+
+    if [ -n "$memory_used" ] && [ -n "$memory_total" ] && [ "$memory_total" -gt 0 ]; then
+        memory_percent=$(echo "$memory_used * 100 / $memory_total" | bc 2>/dev/null || echo 0)
+        memory_used_gb=$(echo "$memory_used / 1024" | bc 2>/dev/null || echo 0)
+        memory_total_gb=$(echo "$memory_total / 1024" | bc 2>/dev/null || echo 0)
+
+        # CPU percentage from load average as fallback
+        load_avg=$(uptime | awk -F'load average:' '{print $2}' | awk '{print $1}' | sed 's/,//')
+        cpu_cores=$(nproc)
+        cpu_percent=$(echo "$load_avg * 100 / $cpu_cores" | bc 2>/dev/null | cut -d. -f1 || echo 0)
+
+        # Determine status
+        if [ "$cpu_percent" -gt 90 ] || [ "$memory_percent" -gt 90 ]; then
+            status=2
+            state="CRITICAL"
+        elif [ "$cpu_percent" -gt 80 ] || [ "$memory_percent" -gt 80 ]; then
+            status=1
+            state="WARNING"
+        else
+            status=0
+            state="OK"
+        fi
+
+        echo "$status Proxmox_Node_Resources cpu_percent=$cpu_percent;memory_percent=$memory_percent;memory_used_gb=$memory_used_gb;memory_total_gb=$memory_total_gb $state: CPU ${cpu_percent}%, Memory ${memory_percent}% (${memory_used_gb}GB/${memory_total_gb}GB)"
+    else
+        echo "1 Proxmox_Node_Resources - WARNING: Failed to get resource information"
+    fi
+}
+
+check_proxmox_node_resources

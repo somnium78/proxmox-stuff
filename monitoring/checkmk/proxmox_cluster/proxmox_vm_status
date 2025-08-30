@@ -1,0 +1,50 @@
+#!/bin/bash
+#
+# Check_MK Local Check: Proxmox VM Status
+# File: /usr/lib/check_mk_agent/local/proxmox_vm_status
+#
+# Monitors Proxmox VM status and resource usage
+# Author: somnium78
+# Version: 1.0.0
+# Date: 2025-08-30
+#
+
+check_proxmox_vm_status() {
+    if ! command -v qm >/dev/null 2>&1; then
+        echo "2 Proxmox_VM_Status - CRITICAL: qm command not found"
+        return
+    fi
+
+    # Get VM list
+    vm_list=$(qm list 2>/dev/null)
+
+    if [ $? -ne 0 ]; then
+        echo "2 Proxmox_VM_Status - CRITICAL: Failed to get VM list"
+        return
+    fi
+
+    # Count VMs by status
+    total_vms=$(echo "$vm_list" | grep -c "^[[:space:]]*[0-9]")
+    running_vms=$(echo "$vm_list" | grep -c "running")
+    stopped_vms=$(echo "$vm_list" | grep -c "stopped")
+    paused_vms=$(echo "$vm_list" | grep -c "paused")
+
+    # Calculate totals
+    if [ $total_vms -eq 0 ]; then
+        echo "0 Proxmox_VM_Status total=0;running=0;stopped=0;paused=0 OK: No VMs configured"
+        return
+    fi
+
+    # Determine status
+    if [ $paused_vms -gt 0 ]; then
+        status=1
+        state="WARNING"
+    else
+        status=0
+        state="OK"
+    fi
+
+    echo "$status Proxmox_VM_Status total=$total_vms;running=$running_vms;stopped=$stopped_vms;paused=$paused_vms $state: $total_vms VMs ($running_vms running, $stopped_vms stopped, $paused_vms paused)"
+}
+
+check_proxmox_vm_status
