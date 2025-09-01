@@ -1,0 +1,147 @@
+#!/bin/bash
+#
+# Check_MK Local Check: Proxmox Hardware Status
+# File: /usr/lib/check_mk_agent/local/proxmox_hardware_status
+#
+# Monitors hardware health including temperatures, fans, SMART status, and IPMI
+# Author: somnium78
+# Version: 1.3.0
+# Date: 2025-08-30
+#
+
+check_proxmox_hardware_status() {
+    local status=0
+    local state="OK"
+    local messages=()
+    local perf_data=""
+
+    # Hardware counters
+    local temp_sensors=0
+    local temp_critical=0
+    local temp_warning=0
+    local fans_total=0
+    local fans_failed=0
+    local disks_total=0
+    local disks_failed=0
+    local max_temp=0
+    local min_fan_rpm=99999
+
+    # Check temperatures using sensors command
+    if command -v sensors >/dev/null 2>&1; then
+        sensor_output=$(sensors 2>/dev/null)
+        if [ -n "$sensor_output" ]; then
+            # Parse temperature readings - ONLY lines that start with sensor names (not indented)
+            while IFS= read -r line; do
+                # Skip empty lines and lines that start with spaces (threshold lines)
+                if [ -n "$line" ] && ! echo "$line" | grep -q "^[[:space:]]" && echo "$line" | grep -q "°C"; then
+                    # Extract sensor name (before the colon)
+                    sensor_name=$(echo "$line" | awk -F':' '{print $1}' | xargs)
+
+                    # Skip lines that contain threshold keywords
+                    if echo "$line" | grep -qE "(crit|high|low|hyst)" && ! echo "$line" | grep -qE "^[^:]*:.*\+[0-9]"; then
+                        continue
+                    fi
+
+                    # Extract the FIRST temperature value (actual reading)
+                    temp_value=$(echo "$line" | grep -oE '\+[0-9]+\.[0-9]+°C|\+[0-9]+°C' | head -1 | sed 's/+//g' | sed 's/°C//g')
+
+                    if [ -n "$temp_value" ] && [ -n "$sensor_name" ]; then
+                        temp_sensors=$((temp_sensors + 1))
+                        temp_int=$(echo "$temp_value" | cut -d'.' -f1)
+
+                        # Reasonable temperature range check
+                        if [ $temp_int -lt 150 ] && [ $temp_int -gt 0 ]; then
+                            if [ $temp_int -gt $max_temp ]; then
+                                max_temp=$temp_int
+                            fi
+
+                            # Temperature thresholds for actual readings
+                            if [ $temp_int -gt 85 ]; then
+                                temp_critical=$((temp_critical + 1))
+                                messages+=("CRITICAL: $sensor_name ${temp_int}°C")
+                                status=2
+                            elif [ $temp_int -gt 75 ]; then
+                                temp_warning=$((temp_warning + 1))
+                                messages+=("WARNING: $sensor_name ${temp_int}°C")
+                                if [ $status -lt 1 ]; then status=1; fi
+                            fi
+                        fi
+                    fi
+                fi
+            done <<< "$(echo "$sensor_output" | grep -E "°C")"
+
+            # Parse fan readings
+            fan_lines=$(echo "$sensor_output" | grep -i "fan.*rpm")
+            while IFS= read -r line; do
+                if [ -n "$line" ]; then
+                    fans_total=$((fans_total + 1))
+                    rpm=$(echo "$line" | grep -oE '[0-9]+' | head -1)
+                    fan_name=$(echo "$line" | awk -F':' '{print $1}' | xargs)
+
+                    if [ -n "$rpm" ] && [ "$rpm" -gt 0 ]; then
+                        if [ $rpm -lt $min_fan_rpm ]; then
+                            min_fan_rpm=$rpm
+                        fi
+                        if [ $rpm -lt 500 ]; then
+                            fans_failed=$((fans_failed + 1))
+                            messages+=("WARNING: $fan_name speed low: ${rpm} RPM")
+                            if [ $status -lt 1 ]; then status=1; fi
+                        fi
+                    fi
+                fi
+            done <<< "$fan_lines"
+        fi
+    fi
+
+    # Check SMART status for all disks
+    if command -v smartctl >/dev/null 2>&1; then
+        for disk in /dev/sd? /dev/nvme?n? /dev/hd?; do
+            if [ -b "$disk" ] 2>/dev/null; then
+                disks_total=$((disks_total + 1))
+                disk_name=$(basename "$disk")
+
+                # Check SMART health
+                smart_health=$(smartctl -H "$disk" 2>/dev/null)
+                if [ $? -eq 0 ]; then
+                    if echo "$smart_health" | grep -q "PASSED\|OK"; then
+                        continue
+                    elif echo "$smart_health" | grep -q "FAILED"; then
+                        disks_failed=$((disks_failed + 1))
+                        messages+=("CRITICAL: SMART failed on $disk_name")
+                        status=2
+                    fi
+                fi
+            fi
+        done
+    fi
+
+    # Set min_fan_rpm to 0 if no fans detected
+    if [ $fans_total -eq 0 ]; then
+        min_fan_rpm=0
+    fi
+
+    # Build performance data
+    perf_data="temp_sensors=$temp_sensors;temp_max=${max_temp}C;temp_critical=$temp_critical;temp_warning=$temp_warning;fans_total=$fans_total;fans_failed=$fans_failed;min_fan_rpm=$min_fan_rpm;disks_total=$disks_total;disks_failed=$disks_failed"
+
+    # Determine final status
+    case $status in
+        0) state="OK" ;;
+        1) state="WARNING" ;;
+        2) state="CRITICAL" ;;
+    esac
+
+    # Build message
+    if [ ${#messages[@]} -eq 0 ]; then
+        message="Hardware OK: $temp_sensors temp sensors (max ${max_temp}°C)"
+        if [ $fans_total -gt 0 ]; then
+            message="$message, $fans_total fans (min ${min_fan_rpm} RPM)"
+        fi
+        message="$message, $disks_total disks"
+    else
+        message=$(IFS=", "; echo "${messages[*]}")
+    fi
+
+    echo "$status Proxmox_Hardware_Status $perf_data $state: $message"
+}
+
+check_proxmox_hardware_status
