@@ -28,6 +28,9 @@ This monitoring suite provides **20 specialized checks** across three main categ
 - **proxmox_cluster**: Monitor Proxmox cluster status and node availability
 - **proxmox_vm_status**: Monitor VM status and resource allocation
 - **proxmox_ct_status**: Monitor LXC container status
+- **proxmox_hardware_status**: Monitor hardware status
+- **proxmox_network_status**: Monitor network status
+- **proxmox_security_updates**: Monitor security updates
 - **proxmox_node_resources**: Monitor node CPU and memory usage
 - **proxmox_storage**: Monitor Proxmox storage backends
 - **proxmox_storage_capacity**: Monitor storage capacity across all backends
@@ -70,6 +73,9 @@ wget -O /usr/lib/check_mk_agent/local/corosync_status https://raw.githubusercont
 wget -O /usr/lib/check_mk_agent/local/proxmox_cluster https://raw.githubusercontent.com/somnium78/proxmox-stuff/main/monitoring/checkmk/proxmox_cluster/proxmox_cluster
 wget -O /usr/lib/check_mk_agent/local/proxmox_vm_status https://raw.githubusercontent.com/somnium78/proxmox-stuff/main/monitoring/checkmk/proxmox_cluster/proxmox_vm_status
 wget -O /usr/lib/check_mk_agent/local/proxmox_ct_status https://raw.githubusercontent.com/somnium78/proxmox-stuff/main/monitoring/checkmk/proxmox_cluster/proxmox_ct_status
+wget -O /usr/lib/check_mk_agent/local/proxmox_hardware_status https://raw.githubusercontent.com/somnium78/proxmox-stuff/main/monitoring/checkmk/proxmox_cluster/proxmox_hardware_status
+wget -O /usr/lib/check_mk_agent/local/proxmox_network_status https://raw.githubusercontent.com/somnium78/proxmox-stuff/main/monitoring/checkmk/proxmox_cluster/proxmox_network_status
+wget -O /usr/lib/check_mk_agent/local/proxmox_security_updates https://raw.githubusercontent.com/somnium78/proxmox-stuff/main/monitoring/checkmk/proxmox_cluster/proxmox_security_updates
 wget -O /usr/lib/check_mk_agent/local/proxmox_node_resources https://raw.githubusercontent.com/somnium78/proxmox-stuff/main/monitoring/checkmk/proxmox_cluster/proxmox_node_resources
 wget -O /usr/lib/check_mk_agent/local/proxmox_storage https://raw.githubusercontent.com/somnium78/proxmox-stuff/main/monitoring/checkmk/proxmox_cluster/proxmox_storage
 wget -O /usr/lib/check_mk_agent/local/proxmox_storage_capacity https://raw.githubusercontent.com/somnium78/proxmox-stuff/main/monitoring/checkmk/proxmox_cluster/proxmox_storage_capacity
