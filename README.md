@@ -36,6 +36,7 @@ Automated deployment and management scripts
 ## 📊 /monitoring
 
 Monitoring and alerting solutions
+
     Check_mk plugins
     Custom Prometheus exporters
     Grafana dashboards
@@ -118,8 +119,8 @@ Storage management and optimization
 
 git clone https://github.com/somnium78/proxmox-stuff.git
 cd proxmox-stuff
-2. 🔍 Choose Your Focus Area
 
+2. 🔍 Choose Your Focus Area
 Navigate to the relevant directory based on your needs:
 
     Performance issues? → /optimizations
@@ -127,7 +128,6 @@ Navigate to the relevant directory based on your needs:
     Want monitoring? → /monitoring (coming soon)
 
 3. 📖 Read Documentation
-
 Each directory contains detailed README files with:
 
     Prerequisites and requirements
@@ -136,7 +136,6 @@ Each directory contains detailed README files with:
     Troubleshooting tips
 
 4. 🧪 Test First
-
 Always test scripts in non-production environments:
 
     Use VM snapshots before major changes
