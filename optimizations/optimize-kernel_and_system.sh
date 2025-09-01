@@ -27,7 +27,7 @@
 #   - Disables IPv6 and sets kernel panic behavior
 #   - Optimizes swappiness (10) and writeback settings
 #   - Configures ZFS ARC limits (50% max, 12.5% min of RAM)
-#   - Checks and enables non-free firmware repositories
+#   - Checks and enables non-free firmware repositories (both formats)
 #   - Installs AMD/Intel microcode packages
 #   - Sets migration: insecure in datacenter.cfg
 #   - Checks VM disk settings for discard and SSD flags
@@ -66,17 +66,58 @@ echo "=== Proxmox Kernel & System Optimization ==="
 # 0. Non-free firmware Repository und Microcode prüfen/installieren
 echo "Step 0: Checking and configuring non-free firmware..."
 
-# Prüfen ob non-free-firmware bereits in sources.list vorhanden ist
-if ! grep -q "non-free-firmware" /etc/apt/sources.list; then
+# Funktion zum Prüfen ob non-free-firmware in APT-Quellen vorhanden ist
+check_nonfree_firmware() {
+    # Prüfe neue .sources Format (PVE 9.x)
+    if find /etc/apt/sources.list.d/ -name "*.sources" -exec grep -l "non-free-firmware" {} \; 2>/dev/null | grep -q .; then
+        return 0
+    fi
+
+    # Prüfe alte sources.list Format (PVE 8.x)
+    if [ -f /etc/apt/sources.list ] && grep -q "non-free-firmware" /etc/apt/sources.list; then
+        return 0
+    fi
+
+    return 1
+}
+
+# Funktion zum Hinzufügen von non-free-firmware
+add_nonfree_firmware() {
+    # Prüfe ob neue .sources Dateien existieren
+    if find /etc/apt/sources.list.d/ -name "*.sources" 2>/dev/null | grep -q .; then
+        echo "Found modern .sources format, updating..."
+
+        # Backup aller .sources Dateien
+        find /etc/apt/sources.list.d/ -name "*.sources" -exec cp {} {}.backup \;
+
+        # non-free-firmware zu allen .sources Dateien hinzufügen
+        find /etc/apt/sources.list.d/ -name "*.sources" -exec sed -i '/^Components:/ { /non-free-firmware/! s/$/ non-free-firmware/ }' {} \;
+
+    elif [ -f /etc/apt/sources.list ]; then
+        echo "Found legacy sources.list format, updating..."
+
+        # Backup der sources.list
+        cp /etc/apt/sources.list /etc/apt/sources.list.backup
+
+        # non-free-firmware zu allen Debian-Repositories hinzufügen
+        sed -i 's/main$/main non-free-firmware/g' /etc/apt/sources.list
+    else
+        echo "No APT sources found - this is unusual!"
+        return 1
+    fi
+
+    return 0
+}
+
+# Prüfen und ggf. non-free-firmware hinzufügen
+if ! check_nonfree_firmware; then
     echo "Adding non-free-firmware to repositories..."
-    # Backup der sources.list
-    cp /etc/apt/sources.list /etc/apt/sources.list.backup
-
-    # non-free-firmware zu allen Debian-Repositories hinzufügen
-    sed -i 's/main$/main non-free-firmware/g' /etc/apt/sources.list
-
-    echo "Updated repositories. Running apt update..."
-    apt update
+    if add_nonfree_firmware; then
+        echo "Updated repositories. Running apt update..."
+        apt update
+    else
+        echo "Failed to update repositories!"
+    fi
 else
     echo "Non-free firmware repositories already configured."
 fi
@@ -254,7 +295,7 @@ sysctl -p /etc/sysctl.d/network.conf
 echo
 echo "=== Configuration Applied ==="
 echo "Non-free firmware status:"
-if grep -q "non-free-firmware" /etc/apt/sources.list; then
+if check_nonfree_firmware; then
     echo "  ✅ Non-free firmware repositories: ENABLED"
 else
     echo "  ❌ Non-free firmware repositories: DISABLED"
