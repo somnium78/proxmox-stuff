@@ -9,6 +9,8 @@ This monitoring suite provides **20 specialized checks** across three main categ
 ### 🗄️ ZFS Monitoring (3 checks)
 - **zfs_capacity**: Monitor ZFS filesystem capacity and usage with detailed metrics
 - **zfs_pools**: Monitor ZFS pool health, status, and performance
+- **zfs_pool_capacity**: Monitor ZFS pool sizes
+- **zfs_snapshots**: Monitor ZFS snapshots
 - **zfs_scrub**: Monitor ZFS scrub operations and schedule compliance
 
 ### 🔗 LINSTOR Monitoring (10 checks)
@@ -33,6 +35,7 @@ This monitoring suite provides **20 specialized checks** across three main categ
 - **proxmox_security_updates**: Monitor security updates
 - **proxmox_node_resources**: Monitor node CPU and memory usage
 - **proxmox_storage**: Monitor Proxmox storage backends
+- **proxmox_ssd_wearout**: Monitor waerout of storage devices
 - **proxmox_storage_capacity**: Monitor storage capacity across all backends
 - **proxmox_drbd_storage**: Monitor DRBD storage replication
 - **proxmox_nfs_storage**: Monitor NFS storage mounts
@@ -55,6 +58,9 @@ mkdir -p /usr/lib/check_mk_agent/local
 wget -O /usr/lib/check_mk_agent/local/zfs_capacity https://raw.githubusercontent.com/somnium78/proxmox-stuff/main/monitoring/checkmk/zfs/zfs_capacity
 wget -O /usr/lib/check_mk_agent/local/zfs_pools https://raw.githubusercontent.com/somnium78/proxmox-stuff/main/monitoring/checkmk/zfs/zfs_pools
 wget -O /usr/lib/check_mk_agent/local/zfs_scrub https://raw.githubusercontent.com/somnium78/proxmox-stuff/main/monitoring/checkmk/zfs/zfs_scrub
+wget -O /usr/lib/check_mk_agent/local/zfs_snapshots https://raw.githubusercontent.com/somnium78/proxmox-stuff/main/monitoring/checkmk/zfs/zfs_snapshots
+wget -O /usr/lib/check_mk_agent/local/zfs_pool_capacity https://raw.githubusercontent.com/somnium78/proxmox-stuff/main/monitoring/checkmk/zfs/zfs_pool_capacity
+
 
 # Install LINSTOR Monitoring on Controller Node
 wget -O /usr/lib/check_mk_agent/local/linstor_controller https://raw.githubusercontent.com/somnium78/proxmox-stuff/main/monitoring/checkmk/linstor/linstor_controller
@@ -79,6 +85,7 @@ wget -O /usr/lib/check_mk_agent/local/proxmox_security_updates https://raw.githu
 wget -O /usr/lib/check_mk_agent/local/proxmox_node_resource https://raw.githubusercontent.com/somnium78/proxmox-stuff/main/monitoring/checkmk/proxmox_cluster/proxmox_node_resource
 wget -O /usr/lib/check_mk_agent/local/proxmox_storage https://raw.githubusercontent.com/somnium78/proxmox-stuff/main/monitoring/checkmk/proxmox_cluster/proxmox_storage
 wget -O /usr/lib/check_mk_agent/local/proxmox_storage_capacity https://raw.githubusercontent.com/somnium78/proxmox-stuff/main/monitoring/checkmk/proxmox_cluster/proxmox_storage_capacity
+wget -O /usr/lib/check_mk_agent/local/proxmox_ssd_wearout https://raw.githubusercontent.com/somnium78/proxmox-stuff/main/monitoring/checkmk/proxmox_cluster/proxmox_ssd_wearout
 wget -O /usr/lib/check_mk_agent/local/proxmox_drbd_storage https://raw.githubusercontent.com/somnium78/proxmox-stuff/main/monitoring/checkmk/proxmox_cluster/proxmox_drbd_storage
 wget -O /usr/lib/check_mk_agent/local/proxmox_nfs_storage https://raw.githubusercontent.com/somnium78/proxmox-stuff/main/monitoring/checkmk/proxmox_cluster/proxmox_nfs_storage
 wget -O /usr/lib/check_mk_agent/local/proxmox_pbs_storage https://raw.githubusercontent.com/somnium78/proxmox-stuff/main/monitoring/checkmk/proxmox_cluster/proxmox_pbs_storage
