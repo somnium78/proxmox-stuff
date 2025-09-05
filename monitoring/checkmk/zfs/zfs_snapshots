@@ -1,0 +1,149 @@
+#!/bin/bash
+#
+# Check_MK Local Check: ZFS Snapshot Statistics
+# File: /usr/lib/check_mk_agent/local/zfs_snapshots
+#
+# Monitors ZFS snapshots count, size, and auto-snapshot status
+# Author: somnium78
+# Version: 1.0.0
+# Date: 2025-09-05
+#
+
+check_zfs_snapshots() {
+    if ! command -v zfs >/dev/null 2>&1; then
+        echo "2 ZFS_Snapshots - CRITICAL: zfs command not found"
+        return
+    fi
+
+    # Get all snapshots
+    snapshot_list=$(zfs list -t snapshot -H -o name,used,refer 2>/dev/null)
+    if [ $? -ne 0 ]; then
+        echo "2 ZFS_Snapshots - CRITICAL: Failed to get ZFS snapshot information"
+        return
+    fi
+
+    total_snapshots=0
+    auto_snapshots=0
+    manual_snapshots=0
+    old_snapshots=0
+    total_size_gb=0
+    auto_size_gb=0
+
+    # Current timestamp for age calculation
+    current_time=$(date +%s)
+
+    # Process each snapshot
+    while IFS=$'\t' read -r name used refer; do
+        if [ -n "$name" ]; then
+            total_snapshots=$((total_snapshots + 1))
+
+            # Convert size to GB
+            size_gb=0
+            if [ -n "$used" ]; then
+                case "$used" in
+                    *T) size_gb=$(echo "$used" | sed 's/T//' | awk '{printf "%.0f", $1 * 1024}') ;;
+                    *G) size_gb=$(echo "$used" | sed 's/G//' | awk '{printf "%.0f", $1}') ;;
+                    *M) size_gb=$(echo "$used" | sed 's/M//' | awk '{printf "%.0f", $1 / 1024}') ;;
+                    *K) size_gb=$(echo "$used" | sed 's/K//' | awk '{printf "%.0f", $1 / 1048576}') ;;
+                    *) size_gb=$(echo "$used" | awk '{printf "%.0f", $1 / 1073741824}') ;;
+                esac
+            fi
+
+            total_size_gb=$((total_size_gb + size_gb))
+
+            # Check if it's an auto-snapshot (common patterns)
+            if echo "$name" | grep -qE "(auto|zfs-auto-snap|frequent|hourly|daily|weekly|monthly)"; then
+                auto_snapshots=$((auto_snapshots + 1))
+                auto_size_gb=$((auto_size_gb + size_gb))
+            else
+                manual_snapshots=$((manual_snapshots + 1))
+            fi
+
+            # Check snapshot age (extract timestamp if possible)
+            snapshot_date=""
+            if echo "$name" | grep -qE "[0-9]{4}-[0-9]{2}-[0-9]{2}"; then
+                # Extract date pattern YYYY-MM-DD
+                snapshot_date=$(echo "$name" | grep -oE "[0-9]{4}-[0-9]{2}-[0-9]{2}" | head -1)
+            elif echo "$name" | grep -qE "[0-9]{8}"; then
+                # Extract date pattern YYYYMMDD
+                date_str=$(echo "$name" | grep -oE "[0-9]{8}" | head -1)
+                if [ ${#date_str} -eq 8 ]; then
+                    snapshot_date="${date_str:0:4}-${date_str:4:2}-${date_str:6:2}"
+                fi
+            fi
+
+            if [ -n "$snapshot_date" ]; then
+                snapshot_time=$(date -d "$snapshot_date" +%s 2>/dev/null || echo 0)
+                if [ "$snapshot_time" -gt 0 ]; then
+                    days_old=$(( (current_time - snapshot_time) / 86400 ))
+                    if [ $days_old -gt 90 ]; then
+                        old_snapshots=$((old_snapshots + 1))
+                    fi
+                fi
+            fi
+        fi
+    done <<< "$snapshot_list"
+
+    # Check for zfs-auto-snapshot service
+    auto_snap_enabled=0
+    if systemctl is-enabled zfs-auto-snapshot >/dev/null 2>&1; then
+        auto_snap_enabled=1
+    elif [ -f /etc/cron.d/zfs-auto-snapshot ] || crontab -l 2>/dev/null | grep -q "zfs.*snapshot"; then
+        auto_snap_enabled=1
+    fi
+
+    # Calculate manual snapshot size
+    manual_size_gb=$((total_size_gb - auto_size_gb))
+
+    # Determine status
+    status=0
+    state="OK"
+    issues=""
+
+    # Warning conditions
+    if [ $total_snapshots -gt 1000 ]; then
+        status=1
+        state="WARNING"
+        issues="$issues,Too many snapshots ($total_snapshots)"
+    fi
+
+    if [ $total_size_gb -gt 500 ]; then
+        if [ $status -lt 1 ]; then status=1; state="WARNING"; fi
+        issues="$issues,High snapshot usage (${total_size_gb}GB)"
+    fi
+
+    if [ $old_snapshots -gt 50 ]; then
+        if [ $status -lt 1 ]; then status=1; state="WARNING"; fi
+        issues="$issues,$old_snapshots snapshots >90 days old"
+    fi
+
+    # Critical conditions
+    if [ $total_size_gb -gt 1000 ]; then
+        status=2
+        state="CRITICAL"
+        issues="$issues,Critical snapshot usage (${total_size_gb}GB)"
+    fi
+
+    # Build message
+    message="$total_snapshots snapshots (${total_size_gb}GB total)"
+    message="$message: $auto_snapshots auto (${auto_size_gb}GB), $manual_snapshots manual (${manual_size_gb}GB)"
+
+    if [ $auto_snap_enabled -eq 1 ]; then
+        message="$message, auto-snapshot enabled"
+    else
+        message="$message, auto-snapshot disabled"
+    fi
+
+    if [ $old_snapshots -gt 0 ]; then
+        message="$message, $old_snapshots old snapshots"
+    fi
+
+    if [ -n "$issues" ]; then
+        issue_list=$(echo "$issues" | sed 's/^,//')
+        message="$message - $issue_list"
+    fi
+
+    echo "$status ZFS_Snapshots total=$total_snapshots;auto=$auto_snapshots;manual=$manual_snapshots;old=$old_snapshots;total_gb=$total_size_gb;auto_gb=$auto_size_gb;manual_gb=$manual_size_gb;auto_enabled=$auto_snap_enabled $state: $message"
+}
+
+check_zfs_snapshots
