@@ -3,82 +3,151 @@
 # Check_MK Local Check: Proxmox PBS Storage
 # File: /usr/lib/check_mk_agent/local/proxmox_pbs_storage
 #
-# Monitors Proxmox Backup Server storage connectivity
+# Monitors Proxmox Backup Server storage connections
 # Author: somnium78
-# Version: 1.0.0
-# Date: 2025-08-30
+# Version: 1.2.0
+# Date: 2025-09-05
 #
 
-check_proxmox_pbs_storage() {
+check_pbs_storage() {
+    # Check if pvesm command is available
     if ! command -v pvesm >/dev/null 2>&1; then
         echo "2 Proxmox_PBS_Storage - CRITICAL: pvesm command not found"
         return
     fi
 
-    # Check PBS storages specifically
-    pbs_status=$(pvesm status | grep pbs 2>/dev/null)
-
-    if [ -z "$pbs_status" ]; then
-        echo "0 Proxmox_PBS_Storage - OK: No PBS storages configured"
+    # Get all storage configurations and filter for PBS
+    all_storages=$(pvesm status 2>/dev/null)
+    if [ $? -ne 0 ]; then
+        echo "2 Proxmox_PBS_Storage - CRITICAL: Failed to get storage status"
         return
     fi
 
-    # Count PBS storages
-    total_pbs=$(echo "$pbs_status" | wc -l)
-    active_pbs=$(echo "$pbs_status" | grep -c "active")
-    inactive_pbs=$((total_pbs - active_pbs))
+    # Extract PBS storages
+    pbs_storages=$(echo "$all_storages" | grep -E "pbs.*active|pbs.*inactive" | awk '{print $1}')
 
-    # Parse storage.cfg for PBS servers and test connectivity
-    pbs_servers_reachable=0
-    pbs_servers_total=0
-    pbs_auth_issues=0
+    if [ -z "$pbs_storages" ]; then
+        echo "0 Proxmox_PBS_Storage total=0;active=0;inactive=0;servers_reachable=0;servers_total=0;auth_issues=0;connection_issues=0 OK: No PBS storages configured"
+        return
+    fi
 
-    if [ -f /etc/pve/storage.cfg ]; then
-        # Extract PBS server info
-        while IFS= read -r line; do
-            if echo "$line" | grep -q "^pbs:"; then
-                pbs_name=$(echo "$line" | cut -d: -f2 | tr -d ' ')
-            elif echo "$line" | grep -q "server"; then
-                pbs_server=$(echo "$line" | awk '{print $2}')
-                if [ -n "$pbs_server" ]; then
-                    pbs_servers_total=$((pbs_servers_total + 1))
+    total=0
+    active=0
+    inactive=0
+    auth_issues=0
+    connection_issues=0
+    unique_servers=""
+    detailed_issues=""
 
-                    # Test basic connectivity (ping)
-                    if ping -c 1 -W 2 "$pbs_server" >/dev/null 2>&1; then
-                        pbs_servers_reachable=$((pbs_servers_reachable + 1))
+    # Process each PBS storage
+    while IFS= read -r storage_name; do
+        if [ -n "$storage_name" ]; then
+            total=$((total + 1))
 
-                        # Test PBS API connectivity (if proxmox-backup-client available)
-                        if command -v proxmox-backup-client >/dev/null 2>&1; then
-                            # This would need proper authentication setup
-                            # For now, we just check if the server responds on port 8007
-                            if timeout 3 bash -c "</dev/tcp/$pbs_server/8007" 2>/dev/null; then
-                                : # PBS API port reachable
-                            else
-                                pbs_auth_issues=$((pbs_auth_issues + 1))
-                            fi
-                        fi
+            # Check if storage is marked as active in pvesm status
+            storage_line=$(echo "$all_storages" | grep "^$storage_name ")
+
+            if echo "$storage_line" | grep -q "active"; then
+                active=$((active + 1))
+
+                # Try to get more detailed info about the storage
+                storage_config=$(pvesm config "$storage_name" 2>/dev/null)
+                if [ -n "$storage_config" ]; then
+                    # Extract server from config
+                    server=$(echo "$storage_config" | grep -E "^\s*server" | awk '{print $2}' | head -1)
+                    if [ -n "$server" ] && ! echo "$unique_servers" | grep -q "$server"; then
+                        unique_servers="$unique_servers $server"
                     fi
                 fi
+
+                # Test actual PBS functionality with a simple list command
+                list_test=$(pvesm list "$storage_name" 2>&1)
+                list_result=$?
+
+                if [ $list_result -ne 0 ]; then
+                    if echo "$list_test" | grep -qiE "auth|login|credential|permission|401|403"; then
+                        auth_issues=$((auth_issues + 1))
+                        detailed_issues="$detailed_issues,$storage_name: auth issue"
+                    elif echo "$list_test" | grep -qiE "connect|network|timeout|unreachable|500|502|503"; then
+                        connection_issues=$((connection_issues + 1))
+                        detailed_issues="$detailed_issues,$storage_name: connection issue"
+                    else
+                        # Other issues - might still be functional
+                        detailed_issues="$detailed_issues,$storage_name: minor issue"
+                    fi
+                fi
+            else
+                inactive=$((inactive + 1))
+                detailed_issues="$detailed_issues,$storage_name: inactive"
             fi
-        done < /etc/pve/storage.cfg
+        fi
+    done <<< "$pbs_storages"
+
+    # Count unique servers and test basic connectivity
+    servers_total=0
+    servers_reachable=0
+
+    for server in $unique_servers; do
+        if [ -n "$server" ]; then
+            servers_total=$((servers_total + 1))
+
+            # Test connectivity (ping with short timeout)
+            if ping -c 1 -W 1 "$server" >/dev/null 2>&1; then
+                servers_reachable=$((servers_reachable + 1))
+            fi
+        fi
+    done
+
+    # If no servers extracted from config, assume local or working setup
+    if [ $servers_total -eq 0 ] && [ $active -gt 0 ]; then
+        servers_total=1
+        servers_reachable=1
     fi
 
-    # Determine status
-    if [ $inactive_pbs -gt 0 ]; then
+    # Determine status - be more lenient
+    status=0
+    state="OK"
+
+    # Only critical if ALL storages are inactive or have major issues
+    if [ $total -gt 0 ] && [ $active -eq 0 ]; then
         status=2
         state="CRITICAL"
-    elif [ $pbs_servers_total -gt 0 ] && [ $pbs_servers_reachable -lt $pbs_servers_total ]; then
-        status=2
-        state="CRITICAL"
-    elif [ $pbs_auth_issues -gt 0 ]; then
+    # Warning if we have auth issues or significant connection problems
+    elif [ $auth_issues -gt 0 ] || [ $connection_issues -gt $((active / 2)) ]; then
         status=1
         state="WARNING"
-    else
-        status=0
-        state="OK"
+    # Also warning if more than half are inactive
+    elif [ $inactive -gt $((total / 2)) ] && [ $total -gt 1 ]; then
+        status=1
+        state="WARNING"
     fi
 
-    echo "$status Proxmox_PBS_Storage total=$total_pbs;active=$active_pbs;inactive=$inactive_pbs;servers_reachable=$pbs_servers_reachable;servers_total=$pbs_servers_total;auth_issues=$pbs_auth_issues $state: $total_pbs PBS storages ($active_pbs active, $pbs_servers_reachable/$pbs_servers_total servers reachable)"
+    # Create message
+    message="$total PBS storage(s) ($active active"
+    if [ $inactive -gt 0 ]; then
+        message="$message, $inactive inactive"
+    fi
+    message="$message)"
+
+    if [ $servers_total -gt 0 ]; then
+        message="$message, $servers_reachable/$servers_total server(s) reachable"
+    fi
+
+    if [ $auth_issues -gt 0 ]; then
+        message="$message, $auth_issues auth issues"
+    fi
+    if [ $connection_issues -gt 0 ]; then
+        message="$message, $connection_issues connection issues"
+    fi
+
+    # Add details if there are issues and we're not OK
+    if [ "$status" -ne 0 ] && [ -n "$detailed_issues" ]; then
+        details=$(echo "$detailed_issues" | sed 's/^,//')
+        message="$message - $details"
+    fi
+
+    echo "$status Proxmox_PBS_Storage total=$total;active=$active;inactive=$inactive;servers_reachable=$servers_reachable;servers_total=$servers_total;auth_issues=$auth_issues;connection_issues=$connection_issues $state: $message"
 }
 
-check_proxmox_pbs_storage
+check_pbs_storage
+
