@@ -17,7 +17,7 @@ This monitoring suite provides **20 specialized checks** across three main categ
 - **linstor_nodes**: Monitor LINSTOR node status and availability
 - **linstor_performance**: Monitor LINSTOR I/O performance metrics
 - **linstor_resource_groups**: Monitor LINSTOR resource group configurations
-- **linstor_resources**: Monitor LINSTOR resource status and placement
+- **linstor_resource**: Monitor LINSTOR resource status and placement
 - **linstor_snapshots**: Monitor LINSTOR snapshot operations
 - **linstor_snapshots_configurable**: Configurable LINSTOR snapshot monitoring
 - **linstor_storage_pools**: Monitor LINSTOR storage pool capacity and health
@@ -76,7 +76,7 @@ wget -O /usr/lib/check_mk_agent/local/proxmox_ct_status https://raw.githubuserco
 wget -O /usr/lib/check_mk_agent/local/proxmox_hardware_status https://raw.githubusercontent.com/somnium78/proxmox-stuff/main/monitoring/checkmk/proxmox_cluster/proxmox_hardware_status
 wget -O /usr/lib/check_mk_agent/local/proxmox_network_status https://raw.githubusercontent.com/somnium78/proxmox-stuff/main/monitoring/checkmk/proxmox_cluster/proxmox_network_status
 wget -O /usr/lib/check_mk_agent/local/proxmox_security_updates https://raw.githubusercontent.com/somnium78/proxmox-stuff/main/monitoring/checkmk/proxmox_cluster/proxmox_security_updates
-wget -O /usr/lib/check_mk_agent/local/proxmox_node_resources https://raw.githubusercontent.com/somnium78/proxmox-stuff/main/monitoring/checkmk/proxmox_cluster/proxmox_node_resources
+wget -O /usr/lib/check_mk_agent/local/proxmox_node_resource https://raw.githubusercontent.com/somnium78/proxmox-stuff/main/monitoring/checkmk/proxmox_cluster/proxmox_node_resource
 wget -O /usr/lib/check_mk_agent/local/proxmox_storage https://raw.githubusercontent.com/somnium78/proxmox-stuff/main/monitoring/checkmk/proxmox_cluster/proxmox_storage
 wget -O /usr/lib/check_mk_agent/local/proxmox_storage_capacity https://raw.githubusercontent.com/somnium78/proxmox-stuff/main/monitoring/checkmk/proxmox_cluster/proxmox_storage_capacity
 wget -O /usr/lib/check_mk_agent/local/proxmox_drbd_storage https://raw.githubusercontent.com/somnium78/proxmox-stuff/main/monitoring/checkmk/proxmox_cluster/proxmox_drbd_storage
